@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>CloudFlare ControlJS Test Suite</title>
+    <style type="text/css">
+        body {
+            
+            font-size: 14px;
+            font-weight: bold;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        a {
+            
+            color: #007ed9;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            
+            color: #e67300;
+        }
+        
+        ul {
+            
+            display: block;
+            position: relative;
+            
+            margin: 0;
+            padding: 0;
+            
+            width: 100%;
+            overflow: hidden;
+            
+            list-style: none;
+        }
+        
+        li {
+            
+            display: block;
+            position: relative;
+            margin: 0;
+            padding: 10px;
+            
+            float: left;
+        }
+        
+        iframe {
+            
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <ul>
+        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/test-html5.html'">HTML5</a></li>
+        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/test-xhtml5.html'">XHTML5</a></li>
+        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/test-html4-strict.html'">HTML4 Strict</a></li>
+        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/test-html4-transitional.html'">HTML4 Transitional</a></li>
+    </ul>
+    <iframe id="view" src="/test-html4-strict.html" frameborder="0"></iframe>
+</body>
+</html>

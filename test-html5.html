@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>CloudFlare ControlJS</title>
+    
+    <script type="text/javascript">
+        var cjsscript = document.createElement('script');
+        cjsscript.src = "http://cfcontroljs.local/control.min.js";
+        var cjssib = document.getElementsByTagName('script')[0];
+        cjssib.parentNode.insertBefore(cjsscript, cjssib);
+    </script>
+    
+    <script type="text/cjs">
+        
+        document.write("HEAD WRITE!");
+    </script>
+    
+    <script type="text/cjs" data-cjssrc="http://sandbox.local/remote/write.js"></script></div>
+    
+</head>
+<body>
+    
+
+    <div>
+        <div>
+            <div style="border: 1px solid red;"><script type="text/cjs">document.write("Avast!");</script>
+            <script type="text/cjs" data-cjssrc="http://sandbox.local/remote/write.js"></script></div>
+        </div>
+    </div>
+    
+    
+</body>
+</html>
