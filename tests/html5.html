@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
     <meta charset="UTF-8">
-    <title>CloudFlare ControlJS</title>
+    <title>HTML5 Test</title>
     
     <script type="text/javascript">
         var cjsscript = document.createElement('script');
@@ -11,24 +11,22 @@
         cjssib.parentNode.insertBefore(cjsscript, cjssib);
     </script>
     
-    <script type="text/cjs">
+    <script type="text/javascript">
         
-        document.write("HEAD WRITE!");
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-XXXXX-X']);
+        _gaq.push(['_trackPageview']);
+        
+        (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+        
     </script>
-    
-    <script type="text/cjs" data-cjssrc="http://sandbox.local/remote/write.js"></script></div>
     
 </head>
 <body>
-    
-
-    <div>
-        <div>
-            <div style="border: 1px solid red;"><script type="text/cjs">document.write("Avast!");</script>
-            <script type="text/cjs" data-cjssrc="http://sandbox.local/remote/write.js"></script></div>
-        </div>
-    </div>
-    
     
 </body>
 </html>
