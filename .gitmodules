@@ -7,3 +7,6 @@
 [submodule "vendor/dom-monster"]
 	path = vendor/dom-monster
 	url = git@github.com:cdata/dom-monster.git
+[submodule "vendor/htmlparser"]
+	path = vendor/htmlparser
+	url = https://github.com/tautologistics/node-htmlparser.git

@@ -48,10 +48,24 @@
             float: left;
         }
         
-        iframe {
+        #TestContainer {
             
+            display: block;
+            position: absolute;
+            
+            top: 38px;
+            bottom: 0px;
             width: 100%;
         }
+        
+        iframe {
+            
+            display: block;
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+        
     </style>
 </head>
 <body>
@@ -61,6 +75,9 @@
         <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/html4-strict.html'">HTML4 Strict</a></li>
         <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/html4-transitional.html'">HTML4 Transitional</a></li>
     </ul>
-    <iframe id="view" src="" frameborder="0"></iframe>
+    <div id="TestContainer">
+        <iframe id="view" src="/tests/testbed.html" frameborder="0"></iframe>
+    </div>
+    
 </body>
 </html>
