@@ -65,7 +65,7 @@ var fs = require('fs'),
                 "output_format=json",
                 "output_info=compiled_code",
                 "output_info=statistics",
-                "compilation_level=SIMPLE_OPTIMIZATIONS",
+                "compilation_level=ADVANCED_OPTIMIZATIONS",
                 "js_code=" + querystring.escape(input)
             ].join("&"),
             request = closure.request(
