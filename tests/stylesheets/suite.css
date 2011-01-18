@@ -1,0 +1,133 @@
+body {
+            
+    font-size: 14px;
+    font-weight: bold;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    
+    color: #007ed9;
+    text-decoration: none;
+    line-height: 16px;
+}
+
+a:hover,
+a.active {
+    
+    margin-left: 4px;
+    color: #e67300;
+}
+
+a, h3 {
+
+    font-weight: 200;
+}
+
+h3 {
+    
+    color: #ccc;
+}
+
+#Headline {
+    
+    display: block;
+    position: relative;
+    
+    line-height: 60px;
+    
+    height: 60px;
+    
+    margin: 0;
+    padding: 0 20px;
+}
+
+#Tests {
+    
+    display: block;
+    position: absolute;
+    
+    top: 60px;
+    bottom: 0px;
+    width: 100%;
+    
+}
+
+#TestNavigation {
+    
+    display: block;
+    position: relative;
+    
+    margin: 0;
+    padding: 0 0 0 20px;
+    
+    width: 200px;
+    height: 100%;
+    
+    list-style: none;
+}
+
+#TestNavigation ul,
+#TestNavigation li,
+#TestNavigation a {
+    
+    display: block;
+    position: relative;
+}
+
+#TestNavigation > li {
+    
+    padding-bottom: 10px;
+}
+
+
+
+#TestContainer {
+    
+    display: block;
+    position: absolute;
+    
+    top: 0px;
+    left: 220px;
+    right: 0px;
+    bottom:0px;
+    height: 100%;/* Epic IE7 hack :( */
+    
+}
+
+.column {
+    
+    display: block;
+    position: relative;
+    
+    float: left;
+    
+    width: 50%;
+    height: 100%;
+    
+}
+
+.iframeContainer {
+    
+    display: block;
+    position: absolute;
+    
+    top: 16px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+}
+
+iframe {
+    
+    display: block;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    
+}

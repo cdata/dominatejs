@@ -1,0 +1,12 @@
+[submodule "vendor/jquery"]
+	path = vendor/jquery
+	url = https://github.com/jquery/jquery.git
+[submodule "vendor/modernizr"]
+	path = vendor/modernizr
+	url = https://github.com/Modernizr/Modernizr.git
+[submodule "vendor/dom-monster"]
+	path = vendor/dom-monster
+	url = git@github.com:cdata/dom-monster.git
+[submodule "vendor/htmlparser"]
+	path = vendor/htmlparser
+	url = https://github.com/tautologistics/node-htmlparser.git

@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DominateJS Test Suite</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/suite.css" media="screen" />
+    
+    <script type="text/javascript" src="/vendor/jquery/dist/jquery.js"></script>
+    <script type="text/javascript" src="/tests/javascripts/suite.js"></script>
+</head>
+<body>
+    <h1 id="Headline">DominateJS Test Suite</h1>
+    
+    <div id="Tests">
+        <ul id="TestNavigation">
+            <li>
+                <h2>HTML5</h2>
+                <ul>
+                    <li><a href="javascript:void(0);" rel="html5/basic-write">Basic Write</a></li>
+                    <li><a href="javascript:void(0);" rel="html5/basic-write-external">Basic External Write</a></li>
+                    <li><a href="javascript:void(0);" rel="html5/complex-write">Complex Write</a></li>
+                </ul>
+            </li>
+            <li>
+                <h2>XHTML5</h2>
+                <ul></ul>
+            </li>
+            <li>
+                <h2>HTML4 Strict</h2>
+                <ul></ul>
+            </li>
+            <li>
+                <h2>HTML4 Transitional</h2>
+                <ul></ul>
+            </li>
+            <li>
+                <h2>Quirks Mode</h2>
+                <ul>
+                    <li><a href="javascript:void(0);" rel="quirks/matts-test">Matt's Write Test</a></li>
+                </ul>
+            </li>
+        </ul>
+        <div id="TestContainer">
+            <div class="column">
+                <h3>Normal</h3>
+                <div class="iframeContainer">
+                    <iframe id="NormalView" src="/tests/blank.html" frameborder="0"></iframe>
+                </div>
+            </div>
+            <div class="column">
+                <h3>DominateJS</h3>
+                <div class="iframeContainer">
+                    <iframe id="DJSView" src="/tests/blank.html" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>

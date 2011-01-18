@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Basic External Write Test</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+
+    <script type="text/javascript">document.write("<div class='foo baz'><div class='bar'>Hi!</div>Hello" + unescape("%3Cscript src='/tests/javascripts/docwrite.js' class='dw' type='text/javascript'%3E%3C/script%3E") + "world</div> BWAH!");</script>
+</body>
+</html>
