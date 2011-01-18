@@ -144,6 +144,30 @@ var fs = require('fs'),
     };
 
 task(
+    'nominify',
+    [],
+    function() {
+        
+        util.log('Concatenating library...');
+        
+        concatenate(
+            [
+                "./lib/libraryprefix.js",
+                "./vendor/htmlparser/lib/htmlparser.js",
+                "./lib/dominate.js",
+                "./lib/librarysuffix.js"
+            ],
+            "./dist/cf-control.js",
+            function(concatenated) {
+                
+                util.log('Concatenation complete!');
+            }
+        );
+    },
+    true
+);
+
+task(
     'default',
     [],
     function() {
@@ -154,10 +178,10 @@ task(
             [
                 "./lib/libraryprefix.js",
                 "./vendor/htmlparser/lib/htmlparser.js",
-                "./lib/control.js",
+                "./lib/dominate.js",
                 "./lib/librarysuffix.js"
             ],
-            "./dist/cf-control.js",
+            "./dist/dominate.js",
             function(concatenated) {
                 
                 util.log('Concatenation complete!');
@@ -165,7 +189,7 @@ task(
                 
                 minify(
                     concatenated,
-                    "./dist/cf-control.min.js",
+                    "./dist/dominate.min.js",
                     function(minified, statistics) {
                         
                         util.log('Minification complete!');

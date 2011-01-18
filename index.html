@@ -2,81 +2,53 @@
 <html lang="en-US">
 <head>
     <meta charset="UTF-8">
-    <title>CloudFlare ControlJS Test Suite</title>
-    <style type="text/css">
-        body {
-            
-            font-size: 14px;
-            font-weight: bold;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        a {
-            
-            color: #007ed9;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            
-            color: #e67300;
-        }
-        
-        ul {
-            
-            display: block;
-            position: relative;
-            
-            margin: 0;
-            padding: 0;
-            
-            width: 100%;
-            overflow: hidden;
-            
-            list-style: none;
-        }
-        
-        li {
-            
-            display: block;
-            position: relative;
-            margin: 0;
-            padding: 10px;
-            
-            float: left;
-        }
-        
-        #TestContainer {
-            
-            display: block;
-            position: absolute;
-            
-            top: 38px;
-            bottom: 0px;
-            width: 100%;
-        }
-        
-        iframe {
-            
-            display: block;
-            position: relative;
-            height: 100%;
-            width: 100%;
-        }
-        
-    </style>
+    <title>DominateJS Test Suite</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/suite.css" media="screen" />
+    
+    <script type="text/javascript" src="/vendor/jquery/dist/jquery.js"></script>
+    <script type="text/javascript" src="/tests/javascripts/suite.js"></script>
 </head>
 <body>
-    <ul>
-        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/html5.html'">HTML5</a></li>
-        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/xhtml5.html'">XHTML5</a></li>
-        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/html4-strict.html'">HTML4 Strict</a></li>
-        <li><a href="javascript:void(0);" onclick="document.getElementById('view').src='/tests/html4-transitional.html'">HTML4 Transitional</a></li>
-    </ul>
-    <div id="TestContainer">
-        <iframe id="view" src="/tests/test.html" frameborder="0"></iframe>
+    <h1 id="Headline">DominateJS Test Suite</h1>
+    
+    <div id="Tests">
+        <ul id="TestNavigation">
+            <li>
+                <h2>HTML5</h2>
+                <ul>
+                    <li><a href="javascript:void(0);" rel="basic-write">Basic Write</a></li>
+                    <li><a href="javascript:void(0);" rel="basic-write-external">Basic External Write</a></li>
+                </ul>
+            </li>
+            <li>
+                <h2>XHTML5</h2>
+                <ul></ul>
+            </li>
+            <li>
+                <h2>HTML4 Strict</h2>
+                <ul></ul>
+            </li>
+            <li>
+                <h2>HTML4 Transitional</h2>
+                <ul></ul>
+            </li>
+        </ul>
+        <div id="TestContainer">
+            <div class="column">
+                <h3>Normal</h3>
+                <div class="iframeContainer">
+                    <iframe id="NormalView" src="/tests/blank.html" frameborder="0"></iframe>
+                </div>
+            </div>
+            <div class="column">
+                <h3>DominateJS</h3>
+                <div class="iframeContainer">
+                    <iframe id="DJSView" src="/tests/blank.html" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
     </div>
     
 </body>
