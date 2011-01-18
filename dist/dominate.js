@@ -834,6 +834,7 @@ exports.DomUtils = DomUtils;
         djsRogueScripts = [],
         djsLoadedPaths = {},
         djsExecuteStack = [],
+        djsOptions = options,
         scriptTimeout = 5000,
         scriptRetryInterval = 200,
         nativeWrite = document.write,
@@ -842,27 +843,30 @@ exports.DomUtils = DomUtils;
             
             IE: "MSIE",
             Chrome: "Chrome/",
-            Opera: "Opera"
+            Opera: "Opera",
+            Webkit: "AppleWebKit/"
         },
         isNavigator = function(id) {
             
             return navigator.userAgent.indexOf(id) != -1;
         },
-        log = function() {
+        log = function(message) {
             
-            if(options.verbose) {
+            if(djsOptions.verbose) {
+                
                 try {
                     
-                    console.log.apply(this, arguments);
+                    console.log(message);
                 } catch(e){}
             }
         },
-        inspect = function() {
+        inspect = function(object) {
             
-            if(options.verbose) {
+            if(djsOptions.verbose) {
+                
                 try {
                     
-                    console.info.apply(this, arguments);
+                    console.info(object);
                 } catch(e){}
             }
         },
@@ -875,26 +879,31 @@ exports.DomUtils = DomUtils;
         },
         getAttribute = function(element, attributeName, custom) {
             
-            if(custom && element.dataset) { // Support HTML5 custom attributes..
+            if(custom && element.dataset) { // Support HTML5 custom attributes...
                 
-                return element.dataset[attribute];
-            } else {
+                var data = element.dataset[attribute];
                 
-                if(custom) {
+                if(data && data != "") {
                     
-                    attributeName = "data-" + attributeName;
+                    return data;
                 }
-                
-                for(var i = 0, attribute; attribute = element.attributes[i++];) {
-                    
-                    if(attributeName == attribute.nodeName) {
-                        
-                        return attribute.nodeValue;
-                    }
-                }
-                
-                return undefined;
             }
+            
+            if(custom) {
+                
+                attributeName = "data-" + attributeName;
+            }
+            
+            for(var i = 0, attribute; attribute = element.attributes[i++];) {
+                
+                if(attributeName == attribute.nodeName) {
+                    
+                    return attribute.nodeValue;
+                }
+            }
+            
+            return undefined;
+            
         },
         setAttribute = function(element, attributeName, value, custom) {
             
@@ -916,7 +925,7 @@ exports.DomUtils = DomUtils;
             if(target.addEventListener) {
                 
                 target.addEventListener(event, listener, !!capture);
-            } else if(element.attachEvent) {
+            } else if(target.attachEvent) {
                 
                 target.attachEvent('on' + event, listener);
             } else if(!target['on' + event]) {
@@ -1008,7 +1017,6 @@ exports.DomUtils = DomUtils;
                                 })(node, nodeData.children);
                             }
                             
-                            
                             if(parent && parent.nodeName.toLowerCase() != 'head') {
                                 
                                 var append = function() {
@@ -1068,14 +1076,17 @@ exports.DomUtils = DomUtils;
         },
         djsEval = function(code) {
             
+            log('Attempting evaluation of inline code: ' + code);
+            
             if(window.execScript) {
                 
                 window.execScript(code);
             } else {
                 
+                window.eval.call(window, code);
                 (function() {
                     
-                    window.eval.call(window, code);
+                    
                 })();
             }
         },
@@ -1088,7 +1099,7 @@ exports.DomUtils = DomUtils;
                 return;
             }
             
-            log('Executing pre-cached script from ' + source);            
+            log('Attempting execution of pre-cached script from ' + source);            
             
             var complete = (function(callback) {
                     
@@ -1164,7 +1175,9 @@ exports.DomUtils = DomUtils;
             var loadHandler = function(url, precacheObject) {
                     
                     log('Script at ' + url + ' successfully precached');
+                    
                     // TODO: Investigate the possibility of removing the precacheObject...
+                    precacheObject.style.display = "none";
                     djsLoadedPaths[url] = true;
                 };
             
@@ -1191,7 +1204,7 @@ exports.DomUtils = DomUtils;
                                 object.data = source;
                                 object.width = 0;
                                 object.height = 0;
-                                object.style.display = "none";
+                                
                                 object.onload = function() { loadHandler(source, object); };
                                 object.onerror = function() { loadHandler(source, object); };
                                 
@@ -1231,7 +1244,6 @@ exports.DomUtils = DomUtils;
                 
                 if(source) {
                     
-                    log('Has source: ' + source);
                     inspect(djsLoadedPaths);
                     
                     if(djsLoadedPaths[source]) {
@@ -1300,6 +1312,7 @@ exports.DomUtils = DomUtils;
             }
         };
     
+    // Note: you probably shouldn't call this function... ;)
     window.resetNativeWrite = function() {
         
         document.write = nativeWrite;

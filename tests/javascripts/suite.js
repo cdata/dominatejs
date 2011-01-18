@@ -16,8 +16,8 @@
                 var target = $(event.currentTarget),
                     test = target.attr('rel');
                 
-                normalView.attr('src', '/tests/html5/' + test + '.html');
-                djsView.attr('src', '/tests/html5/' + test + '-djs.html');
+                normalView.attr('src', '/tests/' + test + '.html');
+                djsView.attr('src', '/tests/' + test + '-djs.html');
                 
                 if(lastTarget) {
                     

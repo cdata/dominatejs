@@ -52,6 +52,7 @@ h3 {
     top: 60px;
     bottom: 0px;
     width: 100%;
+    
 }
 
 #TestNavigation {
@@ -92,6 +93,7 @@ h3 {
     left: 220px;
     right: 0px;
     bottom:0px;
+    height: 100%;/* Epic IE7 hack :( */
     
 }
 
@@ -104,6 +106,7 @@ h3 {
     
     width: 50%;
     height: 100%;
+    
 }
 
 .iframeContainer {
