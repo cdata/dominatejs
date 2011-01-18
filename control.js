@@ -129,6 +129,7 @@ This is an experimental, modified fork of ControlJS.
 		obj.data = url;
 		obj.width  = 0;
 		obj.height = 0;
+		obj.style.display = "none";
 		obj.onload = function() { CJS.onloadCallback(url, obj); };
 		obj.onerror = function() { CJS.onloadCallback(url, obj); };
 		//CJS.dprint("downloadScriptObject: appending " + url);
@@ -138,11 +139,6 @@ This is an experimental, modified fork of ControlJS.
 	
 	CJS.onloadCallback = function(url, elem) {
 		//CJS.dprint("onloadCallback: " + url);
-		
-		// Remove the node if possible (fixes rendering issue found in Chrome 8)
-		if(elem.parentNode) {
-			elem.parentNode.removeChild(elem);
-		}
 		
 		CJS.hLoaded[url] = true;
 	};
