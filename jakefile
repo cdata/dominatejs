@@ -197,6 +197,7 @@ task(
                         util.log('Original size: ' + statistics.originalSize + ' bytes (' + statistics.originalGzipSize + ' bytes gzipped)');
                         util.log('Minified size: ' + statistics.compressedSize + ' bytes (' + statistics.compressedGzipSize + ' bytes gzipped)');
                         util.log('Compression: ' + Math.floor((1 - statistics.compressedSize / statistics.originalSize) * 100) + '% (' +  Math.floor((1 - statistics.compressedGzipSize / statistics.originalGzipSize) * 100) + '% gzipped)' );
+                        util.log('Total compression (minify + gzip): ' + Math.floor((1 - statistics.compressedGzipSize / statistics.originalSize) * 100) + '%');
                     }
                 );
             }
