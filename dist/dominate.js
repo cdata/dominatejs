@@ -955,6 +955,24 @@ exports.DomUtils = DomUtils;
                 
                 var createElement = function(nodeData) {
                         
+                        var setNodeAttributes = function(node, attributes) {
+                                
+                                for(var attribute in attributes) {
+                                    
+                                    switch(attribute) {
+                                        
+                                        case 'class':
+                                            
+                                            node.className += attributes[attribute];
+                                            break;
+                                        default:
+                                            
+                                            node.setAttribute(attribute, attributes[attribute]);
+                                            break;;
+                                    }
+                                }
+                            };
+                            
                         switch(nodeData.type) {
                             
                             case 'text':
@@ -965,10 +983,7 @@ exports.DomUtils = DomUtils;
                                 var script = document.createElement(nodeData.name),
                                     source = nodeData.attribs['src'];
                                 
-                                for(var attribute in nodeData.attribs) {
-                                    
-                                    script.setAttribute(attribute, nodeData.attribs[attribute]);
-                                }
+                                setNodeAttributes(script, nodeData.attribs);
                                 
                                 script.onload = script.onreadystatechange = function() {
                                     
@@ -983,10 +998,7 @@ exports.DomUtils = DomUtils;
                                 
                                 var node = document.createElement(nodeData.name);
                                 
-                                for(var attribute in nodeData.attribs) {
-                                    
-                                    node.setAttribute(attribute, nodeData.attribs[attribute]);
-                                }
+                                setNodeAttributes(node, nodeData.attribs);
                                 
                                 return node;
                             default: 
