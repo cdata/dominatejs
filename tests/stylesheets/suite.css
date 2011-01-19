@@ -93,8 +93,14 @@ h3 {
     left: 220px;
     right: 0px;
     bottom:0px;
-    height: 100%;/* Epic IE7 hack :( */
     
+    height: auto !important;
+    height: 100%;/* Epic IE7 hack :( */   
+}
+
+* html #TestContainer {
+    
+    height: auto;
 }
 
 .column {

@@ -1031,11 +1031,6 @@ exports.DomUtils = DomUtils;
                             
                             if(parent && parent.nodeName.toLowerCase() != 'head') {
                                 
-                                var append = function() {
-                                    
-                                    parent.appendChild(node);
-                                };
-                                
                                 if(script) {
                                     
                                     try {
@@ -1044,11 +1039,15 @@ exports.DomUtils = DomUtils;
                                     } catch(e) {
                                         
                                         log("WARNING: Insertion before cursor failed; appending to end of node.");
-                                        append();
+                                        parent.appendChild(node);
                                     }
+                                } else if(parent.nodeName.toLowerCase() == "script" && node.nodeName.toLowerCase() == "#text") {
+                                    
+                                    parent.text = node.nodeValue;
+                                    
                                 } else {
                                     
-                                    append();
+                                    parent.appendChild(node);
                                 }
                             } else {
                                 
@@ -1078,12 +1077,14 @@ exports.DomUtils = DomUtils;
             
             return false;
         })(),
-        djsWrite = function() {
+        djsWrite = function(out) {
             
             if(djsParser) {
                 
+                log('Parsing the following fragment: ' + out);
+                
                 djsParser.reset();
-                djsParser.parseComplete(arguments[0]);
+                djsParser.parseComplete(out);
             }
         },
         djsEval = function(code) {
@@ -1264,7 +1265,7 @@ exports.DomUtils = DomUtils;
                         nextScript();
                     } else {
                         
-                        var now = Date.now();
+                        var now = (new Date()).getTime();
                         
                         if(!script.startWait) {
                             
