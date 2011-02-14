@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DJS Basic External Write Test</title>
+    
+    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+
+    <script type="text/djs" data-djssrc="/vendor/jquery/dist/jquery.js"></script>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <script type="text/djs">
+     $(function() {
+        var ondcltime = (new Date()).getTime();
+        console.log('onDCL function executed @ ' + ondcltime);
+        $('body').innerHTML = '<p><font color="#ee0000"><blink>IT WORKED!</blink></font></p>';
+     });
+    </script>
+</body>
+</html>
