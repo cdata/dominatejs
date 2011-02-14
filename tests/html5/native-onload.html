@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <title>DJS Native window.onload Test</title>
     
-    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
-
     <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
     <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
 </head>
 <body>
     <script type="text/javascript">
-        alert('Z');
      window.onload = function() {
-        alert('A');
         var ondcltime = (new Date()).getTime();
         var body = document.getElementsByTagName('body')[0];
         var info = window.console && console.log || alert;
