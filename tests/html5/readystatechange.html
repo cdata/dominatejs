@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>readystatechange Simulation Test</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+    
+</head>
+<body>
+
+    <div>Stay on target...</div>
+    <div id="successOne" class="hidden">Got readystatechange!</div>
+    <div id="successTwo" class="hidden">Got onreadystatechange!</div>
+    <div id="warning" class="hidden">Warning: your browser probably doesn't support the readystatechange event!</div>
+    <script type="text/javascript">
+
+        var ua = navigator.userAgent.substring(navigator.userAgent.indexOf('Firefox/'));
+
+        if(ua != navigator.userAgent && parseInt(ua.substr(8, 1)) < 4) {
+
+            document.getElementById('warning').className = "";
+        }
+
+        if(document.addEventListener) {
+            
+            document.addEventListener(
+
+                'readystatechange',
+                function() {
+
+                    console.log('test');
+                    if(document.readyState == "complete")
+                        document.getElementById('successOne').className = "";
+                },
+                true    
+            );
+            
+        } else {
+
+            document.attachEvent(
+
+                'onreadystatechange',
+                function() {
+
+                    if(document.readyState == "complete")
+                        document.getElementById('successOne').className = "";
+                }
+            );
+        }
+
+        document.onreadystatechange = function() {
+
+            if(document.readyState == "complete")
+                document.getElementById('successTwo').className = "";
+        }
+    </script>
+    
+</body>
+</html>
