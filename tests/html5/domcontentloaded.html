@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DOMContentLoaded Simulation Test</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+    
+</head>
+<body>
+
+    <div>Stay on target...</div>
+    <div id="success" class="hidden">Got DOMContentLoaded!</div>
+    <div id="warning" class="hidden">Warning: browser does not support DOMContentLoaded!</div>
+    <script type="text/javascript">
+
+        if(document.addEventListener) {
+
+            document.addEventListener(
+
+                'DOMContentLoaded',
+                function() {
+
+                    document.getElementById('success').className = "";
+                },
+                true
+            );
+        } else {
+            
+            document.getElementById('warning').className = "";
+        }
+
+    </script>
+    
+</body>
+</html>
