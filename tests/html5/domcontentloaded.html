@@ -12,10 +12,10 @@
 
     <div>Stay on target...</div>
     <div id="success" class="hidden">Got DOMContentLoaded!</div>
+    <div id="warning" class="hidden">Warning: browser does not support DOMContentLoaded!</div>
     <script type="text/javascript">
 
         if(document.addEventListener) {
-
 
             document.addEventListener(
 
@@ -26,7 +26,11 @@
                 },
                 true
             );
+        } else {
+            
+            document.getElementById('warning').className = "";
         }
+
     </script>
     
 </body>
