@@ -157,7 +157,7 @@ task(
                 "./lib/dominate.js",
                 "./lib/librarysuffix.js"
             ],
-            "./dist/cf-control.js",
+            "./dist/dominate.js",
             function(concatenated) {
                 
                 util.log('Concatenation complete!');

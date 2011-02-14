@@ -12,3 +12,8 @@ div.attack {
     
     border: 1px solid red;
 }
+
+div.hidden {
+
+    display: none;
+}
