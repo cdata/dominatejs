@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <meta charset="utf-8">
+  <title>DOMContentLoaded / DJS Compat Testcase: ExtJs 3.3.1</title>
+
+  <style>
+    .bad { color: red; }
+    .good { color: green; display: none; }
+    .passed .good { display: inline; }
+    .passed .bad { display: none; }
+  </style>
+
+  <script type="text/javascript">
+  window.onload = function(){
+      var addScript=function(src, cb){
+          var d=document,h=d.getElementsByTagName('head')[0],s=d.createElement('script');
+          s.type='text/javascript';
+          s.src=src;
+          s.onload=cb;
+          h.appendChild(s);
+      };
+
+      window.onloadtime = (new Date()).getTime();
+      console.log('Window.onload fired @ ' + window.onloadtime);
+
+      addScript('../../../vendor/ext-3.3.1/ext-base-debug.js', function(){});
+      addScript('../../../vendor/ext-3.3.1/ext-all-debug-w-comments.js', function(){
+          window.libtime = (new Date()).getTime();
+          console.log('ExtJs loaded @ ' +
+            libtime + ' | +' + (libtime - onloadtime) );
+          Ext.EventManager.addListener(window, 'load', function(){
+            window.dcltime = (new Date()).getTime();
+            console.log('Running on DOMContentLoaded (or close enough) @' +
+              dcltime + ' | +' + (dcltime - onloadtime) );
+            document.getElementById('goal').className = 'passed';
+          });
+      });
+  };
+  </script>
+
+<head>
+</head>
+<body>
+
+<h1>DOMContentLoaded / DJS Compat Testcase: ExtJs 3.3.1</h1>
+<p>View this page via the nginx-UI proxy, which will add DominateJS to the page.  Dominate will cause all JS to be loaded asyncronously, one of which is slowscript.js.  Slowscript will cause Dominate to not execute the JS lib or the inline script until after window.onload.</p>
+<p><b>Expected:</b> inline script will execute OK anyways, no errors on the page.</p>
+<p><b>Bad:</b> inline script doesn't run at all, or there are errors on the page</p>
+
+<p id="goal"><span class="bad">Failed</span> <span class="good">Passed</span></p>
+
+
+</body>
+</html>

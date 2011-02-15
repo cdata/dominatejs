@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <meta charset="utf-8">
+  <title>DOMContentLoaded / DJS Compat Testcase: YUI 2.8</title>
+
+  <style>
+    .bad { color: red; }
+    .good { color: green; display: none; }
+    .passed .good { display: inline; }
+    .passed .bad { display: none; }
+  </style>
+
+  <script type="text/javascript">
+  window.onload = function(){
+      window.onloadtime = (new Date()).getTime();
+      console.log('Window.onload fired @ ' + window.onloadtime);
+
+      var d=document,h=d.getElementsByTagName('head')[0],s=d.createElement('script');
+      s.type='text/javascript';
+      s.src='../../../vendor/yui2-2.8/yuiloader-dom-event.js';
+      s.onload=function(){
+          window.libtime = (new Date()).getTime();
+          console.log('YUI loaded @ ' +
+            libtime + ' | +' + (libtime - onloadtime) );
+          YAHOO.util.Event.on(window, 'load', function(){
+            window.dcltime = (new Date()).getTime();
+            console.log('Running on late onLoad (or close enough) @' +
+              dcltime + ' | +' + (dcltime - onloadtime) );
+            document.getElementById('goal').className = 'passed';
+          });
+      };
+      h.appendChild(s);
+  };
+  </script>
+
+<head>
+</head>
+<body>
+
+<h1>DOMContentLoaded / DJS Compat Testcase: YUI 2.8</h1>
+<p>View this page via the nginx-UI proxy, which will add DominateJS to the page.  Dominate will cause all JS to be loaded asyncronously, one of which is slowscript.js.  Slowscript will cause Dominate to not execute the JS lib or the inline script until after window.onload.</p>
+<p><b>Expected:</b> inline script will execute OK anyways, no errors on the page.</p>
+<p><b>Bad:</b> inline script doesn't run at all, or there are errors on the page</p>
+
+<p id="goal"><span class="bad">Failed</span> <span class="good">Passed</span></p>
+
+
+</body>
+</html>
