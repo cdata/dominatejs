@@ -2138,7 +2138,7 @@ exports.DomUtils = DomUtils;
 
                     DJSUtil.log('Restoring native DOM methods!');
 
-                    //slaveDocument.restore();
+                    slaveDocument.restore();
                     slaveWindow.restore();
 
                     DJSUtil.log('Fin.');
