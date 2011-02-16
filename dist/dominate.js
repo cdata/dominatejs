@@ -943,7 +943,8 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.feature = {
 
-        nativeCallApply: !!(document.createElement.call),
+        createElementCallApply: !!(document.createElement.call),
+        attachEventCallApply: !!(window.attachEvent && window.attachEvent.call),
         standardEvents: !!(window.addEventListener)
     },
 /*
@@ -1133,7 +1134,7 @@ exports.DomUtils = DomUtils;
             document.createElement = function(type) {
 
                 var args = arguments,
-                    element = DJSUtil.feature.nativeCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
+                    element = DJSUtil.feature.createElementCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
 
                 if(type.indexOf('script') != -1) {
 
@@ -1524,7 +1525,9 @@ exports.DomUtils = DomUtils;
             window.addEventListener = nativeMethods.addEventListener;
             window.attachEvent = nativeMethods.attachEvent;
 
-            window.onload = self.onload;
+            if(self.onload) {
+                window.onload = self.onload;
+            }
         },
 
 /*
@@ -1608,7 +1611,13 @@ exports.DomUtils = DomUtils;
                         handlers[trimmedEvent].push(handler);
                     } else {
                         
-                        nativeMethods.attachEvent.apply(window, arguments);
+                        if(DJSUtil.feature.attachEventCallApply) {
+
+                            nativeMethods.attachEvent.apply(window, arguments);
+                        } else {
+
+                            nativeMethods.attachEvent(event, handler);
+                        }
                     }
                 };
 
@@ -1824,7 +1833,7 @@ exports.DomUtils = DomUtils;
             if(self.external) {
 
                 var createElement = slaveDocument.nativeMethods.createElement,
-                    newScript = DJSUtil.feature.nativeCallApply ? createElement.call(document, 'script') : createElement('script'),
+                    newScript = DJSUtil.feature.createElementCallApply ? createElement.call(document, 'script') : createElement('script'),
                     detachHandlers = function() {
                      
                         newScript.onload = newScript.onreadystatechange = newScript.onerror = null;
