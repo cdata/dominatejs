@@ -1083,6 +1083,9 @@ exports.DomUtils = DomUtils;
                     }
                 )
             );
+        } else {
+        	
+        	DJSUtil.log('Warning: no HTML parser detected. Document.write will be disabled!');
         }
     };
 
@@ -1273,8 +1276,9 @@ exports.DomUtils = DomUtils;
  */
         queueSubscript: function(element) {
 
-            DJSUtil.log('QUEUEING SUBSCRIPT:');
+            DJSUtil.log('Queueing a subscript of the current execution: ');
             DJSUtil.inspect(element);
+            
             var self = this,
                 subscriptQueue = self.subscriptQueue,
                 popQueue = function() {
@@ -1337,6 +1341,8 @@ exports.DomUtils = DomUtils;
             var self = this,
                 parser = self.parser;
 
+			DJSUtil.log('Buffering document.write content: ' + out);
+			
             if(parser) {
 
                 self.hasWriteBuffer = true;
@@ -1356,9 +1362,12 @@ exports.DomUtils = DomUtils;
             
             var self = this;
             
+            DJSUtil.log('Flushing document.write buffer!');
+            
             if(self.hasWriteBuffer) {
 
                 self.parser.done();
+                self.parser.reset();
                 self.hasWriteBuffer = false;
             }
         },
@@ -1377,34 +1386,36 @@ exports.DomUtils = DomUtils;
                 document = self.document,
                 setNodeAttributes = function(node, attributes) {
                     
-                    DJSUtil.forEach(
-                        attributes,
-                        function(value, key) {
-
-                            switch(key) {
-
-                                case 'class':
-                                    node.className += value;
-                                    break;
-                                default:
-                                    DJSUtil.setAttribute.call(node, key, value);
-                                    break;
-                            }
-                        }
-                    );
+                    if(attributes) {
+	                    DJSUtil.forEach(
+	                        attributes,
+	                        function(value, key) {
+	
+	                            switch(key) {
+	
+	                                case 'class':
+	                                    node.className += value;
+	                                    break;
+	                                default:
+	                                    DJSUtil.setAttribute.call(node, key, value);
+	                                    break;
+	                            }
+	                        }
+	                    );
+                    }
                 };
                 
-            switch(nodeData.type) {
+            switch(abstractElement.type) {
                 
                 case 'text':
                     
-                    return document.createTextNode(nodeData.data);
+                    return document.createTextNode(abstractElement.data);
                 case 'script':
                     
-                    var script = document.createElement(nodeData.name),
+                    var script = document.createElement(abstractElement.name),
                         parentScript = self.executingScript;
                     
-                    setNodeAttributes(script, nodeData.attribs);
+                    setNodeAttributes(script, abstractElement.attribs);
                     
                     self.executingScript = script;
 
@@ -1418,13 +1429,13 @@ exports.DomUtils = DomUtils;
                     return script;
                 case 'tag':
                     
-                    var node = document.createElement(nodeData.name);
+                    var node = document.createElement(abstractElement.name);
                     
-                    setNodeAttributes(node, nodeData.attribs);
+                    setNodeAttributes(node, abstractElement.attribs);
                     
                     return node;
                 default: 
-                    DJSUtil.log('WARNING: I have no idea what node this is: ' + nodeData.raw);
+                    DJSUtil.log('WARNING: I have no idea what node this is: ' + abstractElement.raw);
                     return false;
             }
         },
@@ -1461,7 +1472,7 @@ exports.DomUtils = DomUtils;
                         }
                     } else {
                         
-                        root.parent.insertBefore(root, node);
+                        root.parentNode.insertBefore(node, root);
                     }
 
                     if(data.children) {
@@ -1808,6 +1819,8 @@ exports.DomUtils = DomUtils;
             var self = this,
                 script = self.originalScript;
 
+			slaveDocument.executingScript = script;
+			
             if(self.external) {
 
                 var createElement = slaveDocument.nativeMethods.createElement,
@@ -1823,10 +1836,13 @@ exports.DomUtils = DomUtils;
 
                     var readyState = newScript.readyState;
 
+					DJSUtil.log('Got onload! Here is ready state: ' + readyState);
                     if(readyState && readyState != 'complete' && readyState != 'loaded') {
 
                         return;
                     }
+                    
+                    slaveDocument.flush();
 
                     detachHandlers();
 
@@ -1852,12 +1868,14 @@ exports.DomUtils = DomUtils;
                 try {
 
                     DJSUtil.globalEval(script.text);
+                    slaveDocument.flush();
                 } catch(e) {
                     
                     DJSUtil.log(e + ' while attempting to execute this inline script: ');
                     DJSUtil.inspect(script);
 
                     callback(false);
+                    // TODO: Reset slave document buffer without a flush..
                 }
 
                 callback(true);
@@ -2120,7 +2138,7 @@ exports.DomUtils = DomUtils;
 
                     DJSUtil.log('Restoring native DOM methods!');
 
-                    slaveDocument.restore();
+                    //slaveDocument.restore();
                     slaveWindow.restore();
 
                     DJSUtil.log('Fin.');
