@@ -838,6 +838,13 @@ exports.DomUtils = DomUtils;
     var DJSUtil = window._ || {};
 
 /*
+ * DJSUtil.epoch
+ *
+ * Marking the DominateJS epoch
+ */
+    DJSUtil.epoch = (new Date()).getTime();
+
+/*
  * DJSUtil.log
  *
  * Attempt to write output to the console using an externally defined 
@@ -1301,19 +1308,34 @@ exports.DomUtils = DomUtils;
 
                     var readyState = element.readyState;
 
+                    clearTimeout(timeout);
+
                     if(readyState && readyState != 'complete' && readyState != 'loaded') {
 
                         return;
                     }
                    
-                    popQueue();
                     removeHandlers();
+                    popQueue();
                 },
                 errorHandler = function() {
 
-                    popQueue();
                     removeHandlers();
-                };
+                    popQueue();
+                },
+                // TODO: Mega hack to make sure queued subscripts don't pause
+                // us indefinitely. We MUST to find a better way around this.
+                timeout = setTimeout(
+                    function() {
+                        
+                        if(!element.parentNode) {
+
+                            DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
+                            errorHandler();
+                        }
+                    }, 
+                    30
+                );
 
 
             slaveScripts.pause();
@@ -1845,7 +1867,6 @@ exports.DomUtils = DomUtils;
 
                     var readyState = newScript.readyState;
 
-					DJSUtil.log('Got onload! Here is ready state: ' + readyState);
                     if(readyState && readyState != 'complete' && readyState != 'loaded') {
 
                         return;
@@ -2011,9 +2032,10 @@ exports.DomUtils = DomUtils;
                      
                         if(self.breakExecution) {
 
+                            DJSUtil.log('Pausing execution...');
                             self.paused = true;
                         } else {
-
+                            
                             self.execute();
                         }
                     };
@@ -2113,6 +2135,7 @@ exports.DomUtils = DomUtils;
 
             if(self.paused) {
 
+                DJSUtil.log('Resuming execution...');
                 self.paused = false;
                 self.execute();
             }
@@ -2150,6 +2173,7 @@ exports.DomUtils = DomUtils;
                     slaveDocument.restore();
                     slaveWindow.restore();
 
+                    DJSUtil.log('Took ' + (((new Date()).getTime()) - DJSUtil.epoch) + 'ms for total domination!');
                     DJSUtil.log('Fin.');
                 }
             );

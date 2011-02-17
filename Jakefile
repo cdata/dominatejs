@@ -13,7 +13,8 @@ var fs = require('fs'),
                     
                     callback(contents.join('\n'));
                 }
-            };
+            },
+            processed = 0;
         
         inputFiles.forEach(
             function(file, index) {
@@ -31,7 +32,9 @@ var fs = require('fs'),
                             contents[index] = data;
                         }
                         
-                        if(index == inputFiles.length - 1) {
+                        processed++;
+                        
+                        if(processed == inputFiles.length) {
                             
                             if(outputFile == callback) {
                                 
