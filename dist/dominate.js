@@ -1309,6 +1309,7 @@ exports.DomUtils = DomUtils;
             
             var self = this,
                 subscriptQueue = self.subscriptQueue,
+                parentScript = self.executingScript,
                 popQueue = function() {
                     
                     subscriptQueue.pop();
@@ -1335,11 +1336,14 @@ exports.DomUtils = DomUtils;
                         return;
                     }
                    
+                    self.flush();
+                    self.executingScript = parentScript;
                     removeHandlers();
                     popQueue();
                 },
                 errorHandler = function() {
 
+                    self.executingScript = parentScript;
                     removeHandlers();
                     popQueue();
                 },
@@ -1359,6 +1363,8 @@ exports.DomUtils = DomUtils;
 
 
             slaveScripts.pause();
+                    
+            self.executingScript = element;
 
             if(DJSUtil.navigator.IE) {
 
@@ -1455,19 +1461,9 @@ exports.DomUtils = DomUtils;
                     return document.createTextNode(abstractElement.data);
                 case 'script':
                     
-                    var script = document.createElement(abstractElement.name),
-                        parentScript = self.executingScript;
+                    var script = document.createElement(abstractElement.name);
                     
                     setNodeAttributes(script, abstractElement.attribs);
-                    
-                    self.executingScript = script;
-
-                    script.onload = script.onreadystatechange = function() {
-                        
-                        self.flush();
-                        self.executingScript = parentScript;
-                        script.onload = script.onreadystatchange = null;
-                    };
 
                     return script;
                 case 'tag':
