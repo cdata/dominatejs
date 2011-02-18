@@ -862,6 +862,26 @@ exports.DomUtils = DomUtils;
     };
 
 /*
+ * DJSUtil.error
+ *
+ * Attempt to write output to the console using an externally defined
+ * console.error. Falls back to console.log.
+ */
+    DJSUtil.error = function(out) {
+
+        if(options.verbose) {
+
+            if(console && console.error) {
+
+                console.error('[ DJS ] ' + out);
+            } else {
+
+                console.log(out);
+            }
+        }
+    };
+
+/*
  * DJSUtil.inspect
  *
  * Attempt to inspect an object in the console using an externally defined 
@@ -1083,7 +1103,7 @@ exports.DomUtils = DomUtils;
                         
                         if(error) {
                             
-                            DJSUtil.log('PARSER ERROR: ' + e);
+                            DJSUtil.error('PARSER ERROR: ' + e);
                         } else {
 
                             self.insert(dom);
@@ -1093,7 +1113,7 @@ exports.DomUtils = DomUtils;
             );
         } else {
         	
-        	DJSUtil.log('Warning: no HTML parser detected. Document.write will be disabled!');
+        	DJSUtil.error('Warning: no HTML parser detected. Document.write will be disabled!');
         }
     };
 
@@ -1458,7 +1478,7 @@ exports.DomUtils = DomUtils;
                     
                     return node;
                 default: 
-                    DJSUtil.log('WARNING: I have no idea what node this is: ' + abstractElement.raw);
+                    DJSUtil.error('WARNING: I have no idea what node this is: ' + abstractElement.raw);
                     return false;
             }
         },
@@ -1881,7 +1901,7 @@ exports.DomUtils = DomUtils;
 
                 newScript.onerror = function() {
 
-                    DJSUtil.log('Error while attempting to execute this external script: ' + self.src);
+                    DJSUtil.error('Error while attempting to execute this external script: ' + self.src);
                     
                     detachHandlers();
 
@@ -1901,7 +1921,7 @@ exports.DomUtils = DomUtils;
                     slaveDocument.flush();
                 } catch(e) {
                     
-                    DJSUtil.log(e + ' while attempting to execute this inline script: ');
+                    DJSUtil.error(e + ' while attempting to execute this inline script: ');
                     DJSUtil.inspect(script);
 
                     callback(false);
@@ -2073,7 +2093,7 @@ exports.DomUtils = DomUtils;
                                             DJSUtil.log('Executed ' + slaves.length + ' scripts so far; ' + captives.length + ' scripts left in the queue...');
                                         } else {
 
-                                            DJSUtil.log('Failed execution!');
+                                            DJSUtil.error('Failed execution!');
                                         }
 
                                         executeNext();
