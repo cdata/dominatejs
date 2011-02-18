@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <meta charset="utf-8">
+  <title>Late window.onload / DJS Compat Testcase: mootools 1.3</title>
+
+  <style>
+    .bad { color: red; }
+    .good { color: green; display: none; }
+    .passed .good { display: inline; }
+    .passed .bad { display: none; }
+  </style>
+
+  <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+
+  <script type="text/djs" data-djssrc="/vendor/mootools/mootools-1.3.js"></script>
+
+  <script type="text/djs">
+  window.addEvent('load', function(){
+    window.dcltime = (new Date()).getTime();
+    console.log('Running on late onload (or close enough) @' + dcltime );
+    document.getElementById('goal').className = 'passed';
+  });
+  </script>
+
+<head>
+</head>
+<body>
+
+
+<p id="goal"><span class="bad">Failed</span> <span class="good">Passed</span></p>
+
+
+</body>
+</html>

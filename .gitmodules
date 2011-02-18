@@ -10,3 +10,6 @@
 [submodule "vendor/htmlparser"]
 	path = vendor/htmlparser
 	url = https://github.com/tautologistics/node-htmlparser.git
+[submodule "vendor/prototype"]
+	path = vendor/prototype
+	url = https://github.com/sstephenson/prototype.git
