@@ -871,12 +871,12 @@ exports.DomUtils = DomUtils;
 
         if(options.verbose) {
 
-            if(console && console.error) {
+            try {
 
                 console.error('[ DJS ] ' + out);
-            } else {
+            } catch(e) {
 
-                console.log(out);
+                DJSUtil.log('[ DJS ] ' + out);
             }
         }
     };
@@ -894,7 +894,10 @@ exports.DomUtils = DomUtils;
             try {
 
                 console.info(object);
-            } catch(e) {}
+            } catch(e) {
+                
+                DJSUtil.log(object);
+            }
         }
     };
 
