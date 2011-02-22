@@ -2047,6 +2047,7 @@ exports.DomUtils = DomUtils;
                     precacheObject.data = self.src;
                     precacheObject.width = 0;
                     precacheObject.height = 0;
+                    precacheObject.style.display = "none";
 
                     appendTarget.appendChild(precacheObject);
                 }
