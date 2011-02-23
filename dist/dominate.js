@@ -1537,6 +1537,11 @@ exports.DomUtils = DomUtils;
                 case 'text':
                     
                     return document.createTextNode(abstractElement.data);
+
+                case 'comment':
+                    
+                    return document.createComment(abstractElement.data);
+
                 case 'script':
                     
                     var script = document.createElement(abstractElement.name);
@@ -1544,6 +1549,8 @@ exports.DomUtils = DomUtils;
                     setNodeAttributes(script, abstractElement.attribs);
 
                     return script;
+
+                case 'style':
                 case 'tag':
                     
                     var node = document.createElement(abstractElement.name);
@@ -1551,8 +1558,13 @@ exports.DomUtils = DomUtils;
                     setNodeAttributes(node, abstractElement.attribs);
                     
                     return node;
+
+                case 'directive':
+                    DJSUtil.log('Ignoring an HTML directive found in document.write stream ' + abstractElement.raw);
+                    return false;
+
                 default: 
-                    DJSUtil.error('WARNING: I have no idea what node this is: ' + abstractElement.raw);
+                    DJSUtil.error('WARNING: unexpected element type found: ' + abstractElement.raw);
                     return false;
             }
         },
