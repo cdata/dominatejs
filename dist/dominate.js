@@ -1179,7 +1179,7 @@ exports.DomUtils = DomUtils;
                         
                         if(error) {
                             
-                            DJSUtil.error('PARSER ERROR: ' + e);
+                            DJSUtil.error('PARSER ERROR: ' + error);
                         } else {
 
                             self.insert(dom);
