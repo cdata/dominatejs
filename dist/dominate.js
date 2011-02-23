@@ -1690,7 +1690,7 @@ exports.DomUtils = DomUtils;
                      */
                     try {
 
-                        if (name == "#text") {
+                        if (cursor.nodeName.toLowerCase() == "script" && name == "#text") {
 
                             cursor.text = node.nodeValue;
 
