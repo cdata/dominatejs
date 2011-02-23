@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>iFrame test case</title>
+
+  <style>
+    .bad { color: red; }
+    .good { color: green; display: none; }
+    .passed .good { display: inline; }
+    .passed .bad { display: none; }
+  </style>
+
+    <script type="text/javascript">window.DJS = {verbose: true};(function(a,b){var c=a.__CF||a.$CF||{},d=b.createElement("script"),e=b.getElementsByTagName("script")[0];c.DJS=c.DJS||[],e.parentNode.insertBefore(d,e),d.src="http://192.168.121.133:8112/dist/dominate.js"})(window,document)</script>
+
+</head>
+<body>
+
+<h1>iFrame test case</h1>
+<p>In this test case, we will dynamically add an iFrame to the page.</p>
+<p><b>Expected:</b> the iframe's contents (Passed) will appear</b></p>
+<p><b>Bad:</b> some issue will prevent the iFrame contents from rendering correctly</b></p>
+
+<ul class="ads-list" id="target-ul">
+    <div id="target-d-x">
+        <p>
+            <div class="dd"></div>
+            <p class="pp"></p>
+        </p>
+    </div>
+    <p id="target-p-x">
+        <div><h1>mydiv1</h1></div>
+    </p>
+    <p id="target-p">
+       <script type="text/djs">
+        document.write("<div><h1>mydiv2</h1></div>");
+        document.write("<script>console.log('it worked (almost)');document.write('<h1>IT WORKED!</h1>');<\/script>");
+       </script>
+    </p>
+</ul>
+
+</body>
+</html>
+
