@@ -2047,7 +2047,8 @@ exports.DomUtils = DomUtils;
                     precacheObject.data = self.src;
                     precacheObject.width = 0;
                     precacheObject.height = 0;
-                    precacheObject.style.display = "none";
+                    precacheObject.style.position = "absolute";
+                    precacheObject.style.left = "-999";
 
                     appendTarget.appendChild(precacheObject);
                 }
