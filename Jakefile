@@ -1,8 +1,8 @@
-var fs = require('fs'),
+var uglifyParser = require('uglify-js').parser,
+    uglifyProcessor = require('uglify-js').uglify,
     util = require('util'),
-    http = require('http'),
-    querystring = require('querystring'),
-    closure = http.createClient('80', 'closure-compiler.appspot.com'),
+    fs = require('fs'),
+    process = require('child_process'),
     concatenate = function(inputFiles, outputFile, callback) {
         
         var contents = [],
@@ -14,7 +14,7 @@ var fs = require('fs'),
                     callback(contents.join('\n'));
                 }
             },
-            processed = 0;
+            parsed = 0;
         
         inputFiles.forEach(
             function(file, index) {
@@ -32,9 +32,9 @@ var fs = require('fs'),
                             contents[index] = data;
                         }
                         
-                        processed++;
+                        parsed++;
                         
-                        if(processed == inputFiles.length) {
+                        if(parsed == inputFiles.length) {
                             
                             if(outputFile == callback) {
                                 
@@ -62,148 +62,115 @@ var fs = require('fs'),
             }
         );
     },
-    minify = function(input, outputFile, callback) {
-        
-        var options = [
-                "output_format=json",
-                "output_info=compiled_code",
-                "output_info=statistics",
-                "compilation_level=ADVANCED_OPTIMIZATIONS",
-                "js_code=" + querystring.escape(input)
-            ].join("&"),
-            request = closure.request(
-                'POST',
-                '/compile',
-                {
-                    "Host" : "closure-compiler.appspot.com",
-                    "Referer" : "http://closure-compiler.appspot.com/home",
-                    "Content-Type" : "application/x-www-form-urlencoded;charset=UTF-8",
-                    "Content-Length" : options.length,
-                    "Accept" : "*/*",
-                }
-            ),
-            complete = function(result, stats) {
+    css = function(inputFile, outputFile, minify) {
+         
+        fs.unlink(
+            outputFile,
+            function() {
                 
-                if(callback) {
-                    
-                    callback(result, stats);
-                }
-            };
-        
-        request.write(options);
-        
-        request.once(
-            'response',
-            function(response) {
-                
-                var responseJSON = "";
-                
-                response.on(
-                    'data',
-                    function(chunk) {
+                fs.readFile(
+                    inputFile,
+                    function(error, data) {
                         
-                        responseJSON += chunk;
-                    }
-                ).on(
-                    'end',
-                    function() {
-                        
-                        try {
+                        if(error) {
                             
-                            var response = JSON.parse(responseJSON),
-                                code = querystring.unescape(response.compiledCode),
-                                stats = response.statistics;
+                            util.log('Error reading stylus input: ' + error);
+                        } else {
                             
-                            if(outputFile == callback) {
-                                
-                                complete(code, stats);
-                            } else {
-                                
-                                fs.writeFile(
-                                    outputFile,
-                                    code,
-                                    function(error) {
+                            stylus(data.toString('utf8'))
+                            .set('compress', minify)
+                            .render(
+                                function(error, css) {
+                                    
+                                    if(error) {
                                         
-                                        if(error) {
-                                            
-                                            util.error("Error writing minified file: " + error);
-                                        } else {
-                                            
-                                            complete(code, stats);
-                                        }
+                                        util.log(error)
+                                    } else {
+                                        
+                                        fs.writeFile(
+                                            outputFile,
+                                            css,
+                                            function(error) {
+                                                
+                                                if(error) {
+                                                    
+                                                    util.log('Error writing ' + (minify ? 'normal' : 'minified') + ' css!');
+                                                } else {
+                                                    
+                                                    util.log('Wrote ' + (minify ? 'normal' : 'minified') + ' css!');
+                                                }
+                                            }
+                                        );
                                     }
-                                );
-                            }
-                        } catch(e) {
-                            
-                            complete(e.toString());
+                                }
+                            );
                         }
                     }
                 );
             }
         );
         
-        request.end();
-    };
-
-task(
-    'nominify',
-    [],
-    function() {
         
-        util.log('Concatenating library...');
+    },
+    minify = function(input, outputFile, callback) {
+    
+        var minified = uglifyProcessor.gen_code(uglifyProcessor.ast_squeeze(uglifyParser.parse(input)));
         
-        concatenate(
-            [
-                "./lib/libraryprefix.js",
-                "./vendor/htmlparser/lib/htmlparser.js",
-                "./lib/dominate.js",
-                "./lib/librarysuffix.js"
-            ],
-            "./dist/dominate.js",
-            function(concatenated) {
+        fs.writeFile(
+            outputFile,
+            minified,
+            function(error) {
                 
-                util.log('Concatenation complete!');
+                if(error) {
+                    
+                    until.error('Error writing minified file: ' + error);
+                } else {
+                    
+                    callback();
+                }
             }
         );
     },
-    true
-);
+    library = [
+        
+        "./lib/libraryprefix.js",
+        "./vendor/htmlparser/lib/htmlparser.js",
+        "./lib/dominate.js",
+        "./lib/librarysuffix.js"
+    ];
 
 task(
-    'default',
+    'js',
     [],
     function() {
         
-        util.log('Concatenating library...');
         
         concatenate(
-            [
-                "./lib/libraryprefix.js",
-                "./vendor/htmlparser/lib/htmlparser.js",
-                "./lib/dominate.js",
-                "./lib/librarysuffix.js"
-            ],
-            "./dist/dominate.js",
-            function(concatenated) {
+            library,
+            './dist/dominate.js',
+            function(output) {
                 
-                util.log('Concatenation complete!');
-                util.log('Minifying library...');
+                util.log('Wrote normal js!');
                 
                 minify(
-                    concatenated,
-                    "./dist/dominate.min.js",
-                    function(minified, statistics) {
+                    
+                    output,
+                    './dist/dominate.min.js',
+                    function() {
                         
-                        util.log('Minification complete!');
-                        
-                        util.log('Original size: ' + statistics.originalSize + ' bytes (' + statistics.originalGzipSize + ' bytes gzipped)');
-                        util.log('Minified size: ' + statistics.compressedSize + ' bytes (' + statistics.compressedGzipSize + ' bytes gzipped)');
-                        util.log('Compression: ' + Math.floor((1 - statistics.compressedSize / statistics.originalSize) * 100) + '% (' +  Math.floor((1 - statistics.compressedGzipSize / statistics.originalGzipSize) * 100) + '% gzipped)' );
-                        util.log('Total compression (minify + gzip): ' + Math.floor((1 - statistics.compressedGzipSize / statistics.originalSize) * 100) + '%');
+                        util.log('Wrote minified js!');
                     }
                 );
             }
         );
     }
 );
+
+task(
+    'default',
+    ['js'],
+    function() {
+        
+    }
+);
+
