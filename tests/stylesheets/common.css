@@ -1,5 +1,6 @@
 div.foo {
     
+
     border: 10px solid #ccc;
 }
 
@@ -11,4 +12,9 @@ div.bar {
 div.attack {
     
     border: 1px solid red;
+}
+
+.hidden {
+
+    display: none;
 }
