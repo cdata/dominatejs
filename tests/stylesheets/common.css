@@ -18,3 +18,29 @@ div.attack {
 
     display: none;
 }
+
+.rightparent * {
+    color: green;
+    font-weight: bold;
+}
+
+.wrongparent * {
+    color: red;
+    font-weight: normal;
+}
+
+.bad {
+    color: red;
+}
+
+.good {
+    color: green; display: none;
+}
+
+.passed .good {
+    display: inline;
+}
+
+.passed .bad {
+    display: none;
+}

@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DJS Basic External Write Test</title>
+    
+    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <div class="rightparent">
+        <p class="wrongparent">
+        <script type="text/djs">
+            document.write('<span><div><h1>I SHOULD BE GREEN AND BOLD</h1></div></span>');
+        </script>
+        </p>
+    </div>
+</body>
+</html>
