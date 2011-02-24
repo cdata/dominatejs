@@ -1179,7 +1179,7 @@ exports.DomUtils = DomUtils;
                         
                         if(error) {
                             
-                            DJSUtil.error('PARSER ERROR: ' + e);
+                            DJSUtil.error('PARSER ERROR: ' + error);
                         } else {
 
                             self.insert(dom);
@@ -1583,7 +1583,7 @@ exports.DomUtils = DomUtils;
  * can "bubble" up the dom until a vaild structure is found.  Bubble events
  * will permanently adjust the insertion cursor until a new script.
  */
-        insert: function(abstractDOM, parent) {
+        insert: function(abstractDOM, rawParent) {
             /*
              * Implementation notes:
              *
@@ -1627,22 +1627,70 @@ exports.DomUtils = DomUtils;
                          * 3 document.body (if script did not attach
                          *   successfully)
                          */
-                        var rawCursor = parent ||
+                        var rawCursor = {
 
-                            (self.streamCursor.executingScript && 
-                                self.streamCursor.executingScript.parentNode)
+                            parent: null,
 
-                            || document.body;
+                            sibling: null
 
-                        return (function getFirstNonClosedParent(element) {
+                        };
 
-                            return !element.closed ? element :
+                        if (rawParent) {
 
-                                (!element.parentNode ?
+                            rawCursor.parent = rawParent;
 
-                                    document.body.firstChild :
+                        } else if (self.streamCursor.executingScript) {
 
-                                    getFirstNonClosedParent(element.parentNode));
+                            rawCursor.parent = self.streamCursor.executingScript.parentNode;
+
+                            rawCursor.sibling = self.streamCursor.executingScript;
+
+                        } else {
+
+                            rawCursor.parent = document.body;
+
+                        }
+
+                        return (function getFirstNonClosedParent(cursor) {
+
+                            var finalCursor;
+
+                            if (!cursor.parent.closed) {
+
+                                /*
+                                 * Current cursor is fine
+                                 */
+                                finalCursor = cursor;
+
+                            } else if (cursor.parent.parentNode) {
+
+                                /*
+                                 * Climb up the tree
+                                 */
+                                finalCursor = getFirstNonClosedParent({
+
+                                    parent: cursor.parent.parentNode,
+
+                                    sibling: cursor.parent
+                                });
+
+                            } else {
+
+                                /*
+                                 * Fallback: use document.body if
+                                 * everything is closed
+                                 */
+                                finalCursor = {
+
+                                    parent: document.body,
+
+                                    sibling: null
+
+                                };
+
+                            }
+
+                            return finalCursor;
 
                         })(rawCursor);
                     };
@@ -1658,17 +1706,22 @@ exports.DomUtils = DomUtils;
                      */
                     var findValidAncestorAndCloseNodes = function(node, cursor) {
 
-                        if (DJSUtil.isValidParent(node, cursor)) {
+                        var parent = cursor.parent;
+
+                        if (DJSUtil.isValidParent(node, parent)) {
 
                             return cursor;
 
                         } else {
 
-                            cursor.closed = true;
+                            parent.closed = true;
 
-                            if (cursor.parentNode) {
+                            if (parent.parentNode) {
 
-                                return findValidAncestorAndCloseNodes(node, cursor.parentNode);
+                                return findValidAncestorAndCloseNodes(node, {
+                                    parent: parent.parentNode,
+                                    sibling: parent
+                                });
 
                             } else {
 
@@ -1690,14 +1743,27 @@ exports.DomUtils = DomUtils;
                      */
                     try {
 
-                        if (cursor.nodeName.toLowerCase() == "script" && name == "#text") {
+                        if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                            cursor.text = node.nodeValue;
+                            cursor.parent.text = node.nodeValue;
 
                         } else {
 
+                            var parent, sibling;
+
                             cursor = findValidAncestorAndCloseNodes(node, cursor);
-                            cursor.appendChild(node);
+
+                            parent = cursor.parent, sibling = cursor.sibling;
+
+                            if (sibling) {
+
+                                parent.insertBefore(node, sibling);
+
+                            } else {
+
+                                parent.appendChild(node);
+
+                            }
                         }
 
                         if (data.children) {
@@ -1709,42 +1775,9 @@ exports.DomUtils = DomUtils;
                     } catch(e) {
 
                         DJSUtil.log('Insert failed');
-                        DJSUtil.inspect(e);
+                        DJSUtil.error(e);
                     }
 
-
-                    /*
-                    if(parent) {
-                        
-                        // For some reason, in IE the script content is a text 
-                        // child node of the script. Parser bug?
-                        if(parent.nodeName.toLowerCase() == "script" && name == "#text") {
-                        
-                            parent.text = node.nodeValue;
-                        } else {
-                            
-                            try {
-                                parent.appendChild(node);
-                            } catch (e) {
-                                DJSUtil.log('EXCEPTION CAUGHT');
-                                console.log(e);
-                            }
-                        }
-                    } else {
-                        
-                        try {
-                            cursor.parentNode.insertBefore(node, cursor);
-                        } catch (e) {
-                            DJSUtil.log('EXCEPTION CAUGHT');
-                            console.log(e);
-                        }
-                    }
-
-                    if(data.children) {
-                        
-                        self.insert(data.children, node);
-                    }
-                    */
                 }
             );
         }
