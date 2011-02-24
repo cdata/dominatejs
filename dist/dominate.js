@@ -862,6 +862,26 @@ exports.DomUtils = DomUtils;
     };
 
 /*
+ * DJSUtil.error
+ *
+ * Attempt to write output to the console using an externally defined
+ * console.error. Falls back to console.log.
+ */
+    DJSUtil.error = function(out) {
+
+        if(options.verbose) {
+
+            try {
+
+                console.error('[ DJS ] ' + out);
+            } catch(e) {
+
+                DJSUtil.log('[ DJS ] ' + out);
+            }
+        }
+    };
+
+/*
  * DJSUtil.inspect
  *
  * Attempt to inspect an object in the console using an externally defined 
@@ -874,7 +894,10 @@ exports.DomUtils = DomUtils;
             try {
 
                 console.info(object);
-            } catch(e) {}
+            } catch(e) {
+                
+                DJSUtil.log(object);
+            }
         }
     };
 
@@ -1047,6 +1070,79 @@ exports.DomUtils = DomUtils;
         }
     };
 
+    /*
+     * DJSUtil.htmlSemanticRules
+     *
+     * Based on HTML5 semantics: 
+     * http://dev.w3.org/html5/spec/Overview.html
+     */
+    DJSUtil.htmlSemanticRules = {
+        'head': {
+            inclusive: {
+                'html': 1
+            }
+         },
+        'title': {
+            inclusive: {
+                'head': 1
+            }
+        },
+        'base': {
+            inclusive: {
+                'head': 1
+            }
+        },
+        'link': {
+            exclusive: { }
+        },
+        'meta': {
+            exclusive: { }
+        },
+        'style': {
+            exclusive: { }
+        },
+        'script': {
+            exclusive: { }
+        },
+        'noscript': {
+            exclusive: {
+                'noscript': 1
+            } //TODO: noscript cannot be a descendant of noscript, even indirectly
+        },
+        'body': {
+            inclusive: {
+                'html': 1
+            }
+        },
+        'div': { // this is a hack until proper flow / phrasing classes are used
+            exclusive: {
+                'p': 1
+            }
+        }
+        // TODO: define rules in terms of content models (tag classes), i.e. flow content vs phrasing content
+    };
+
+    DJSUtil.isValidParent = function(node, parentNode) {
+
+        var rules = DJSUtil.htmlSemanticRules,
+            nodeName = node.nodeName.toLowerCase(),
+            parentNodeName = parentNode.nodeName.toLowerCase();
+
+        if (!rules[nodeName]) {
+            return true;
+        }
+
+        if (rules[nodeName].inclusive) {
+            return !!rules[nodeName].inclusive[parentNodeName];
+        } else if (rules[nodeName].exclusive) {
+            return !rules[nodeName].exclusive[parentNodeName];
+        }
+
+        return !(rules[nodeName]) ||
+            (rules[nodeName].inclusive && !!rules[nodeName].inclusive[parentNodeName]) || 
+            (rules[nodeName].exclusive && !rules[nodeName].exclusive[parentNodeName]);
+    };
+
 /*
  * class DJSDocument
  *
@@ -1083,7 +1179,7 @@ exports.DomUtils = DomUtils;
                         
                         if(error) {
                             
-                            DJSUtil.log('PARSER ERROR: ' + e);
+                            DJSUtil.error('PARSER ERROR: ' + error);
                         } else {
 
                             self.insert(dom);
@@ -1093,7 +1189,7 @@ exports.DomUtils = DomUtils;
             );
         } else {
         	
-        	DJSUtil.log('Warning: no HTML parser detected. Document.write will be disabled!');
+        	DJSUtil.error('Warning: no HTML parser detected. Document.write will be disabled!');
         }
     };
 
@@ -1289,6 +1385,7 @@ exports.DomUtils = DomUtils;
             
             var self = this,
                 subscriptQueue = self.subscriptQueue,
+                parentStreamCursor = self.streamCursor,
                 popQueue = function() {
                     
                     subscriptQueue.pop();
@@ -1315,11 +1412,14 @@ exports.DomUtils = DomUtils;
                         return;
                     }
                    
+                    self.flush();
+                    self.streamCursor = parentStreamCursor;
                     removeHandlers();
                     popQueue();
                 },
                 errorHandler = function() {
 
+                    self.streamCursor = parentStreamCursor;
                     removeHandlers();
                     popQueue();
                 },
@@ -1339,6 +1439,10 @@ exports.DomUtils = DomUtils;
 
 
             slaveScripts.pause();
+                    
+            self.streamCursor = { 
+                executingScript: element || document.body.firstChild
+            };
 
             if(DJSUtil.navigator.IE) {
 
@@ -1433,23 +1537,20 @@ exports.DomUtils = DomUtils;
                 case 'text':
                     
                     return document.createTextNode(abstractElement.data);
+
+                case 'comment':
+                    
+                    return document.createComment(abstractElement.data);
+
                 case 'script':
                     
-                    var script = document.createElement(abstractElement.name),
-                        parentScript = self.executingScript;
+                    var script = document.createElement(abstractElement.name);
                     
                     setNodeAttributes(script, abstractElement.attribs);
-                    
-                    self.executingScript = script;
-
-                    script.onload = script.onreadystatechange = function() {
-                        
-                        self.flush();
-                        self.executingScript = parentScript;
-                        script.onload = script.onreadystatchange = null;
-                    };
 
                     return script;
+
+                case 'style':
                 case 'tag':
                     
                     var node = document.createElement(abstractElement.name);
@@ -1457,8 +1558,13 @@ exports.DomUtils = DomUtils;
                     setNodeAttributes(node, abstractElement.attribs);
                     
                     return node;
+
+                case 'directive':
+                    DJSUtil.log('Ignoring an HTML directive found in document.write stream ' + abstractElement.raw);
+                    return false;
+
                 default: 
-                    DJSUtil.log('WARNING: I have no idea what node this is: ' + abstractElement.raw);
+                    DJSUtil.error('WARNING: unexpected element type found: ' + abstractElement.raw);
                     return false;
             }
         },
@@ -1469,39 +1575,209 @@ exports.DomUtils = DomUtils;
  * Given abstract DOM data as generated by the HTML parser, and optionally a
  * parent node, this method will iterate over the data and ensure that it is
  * properly inserted into the DOM.
+ *
+ * In all browsers in Standards mode, tags inserted with document.write
+ * cannot bring the DOM into an invalid structure (i.e. <p><div></div></p>).
+ * So, the browser will close open tags until a valid structure is reached
+ * (i.e. <p></p><div></div>).  To simulate this behavior, inserted nodes
+ * can "bubble" up the dom until a vaild structure is found.  Bubble events
+ * will permanently adjust the insertion cursor until a new script.
  */
-        insert: function(abstractDOM, parent) {
+        insert: function(abstractDOM, rawParent) {
+            /*
+             * Implementation notes:
+             *
+             * Basically we are performing a depth-first traversal
+             * of the tag tree given as abstractDOM, with one enhancement:
+             * Closed Nodes.
+             *
+             * For any node, we may encounter an Invalid Insertion, such
+             * as insert(<div>, <p>) or insert(<div>) when the stream cursor
+             * is a <p> tag.  In this situation, we move up the tree until we
+             * find a valid parent.  All candidate parents tried along the way
+             * are marked Closed.
+             *
+             * Insert must not insert any nodes into a Closed Node.
+             * insert(nodeA, nodeB) where nodeB is Closed will attach
+             * nodeA to nodeB's most immediate non-Closed parent.
+             *
+             * Closedness is a property of HTML Elements which must persist
+             * after this function completes.
+             */
             
             var self = this,
-                document = self.document,
-                root = self.executingScript || document.body.firstChild;
+                document = self.document;
 
             DJSUtil.forEach(
                 abstractDOM,
                 function(data) {
 
-                    var node = self.convertAbstractElement(data);
+                    /*
+                     * Return the streamCursor for the current document,
+                     * or the most immediate non-Closed parent
+                     * in the event that the streamCursor is closed.
+                     */
+                    var getEffectiveStreamCursor = function() {
 
-                    if(parent) {
-                        
-                        // For some reason, in IE the script content is a text 
-                        // child node of the script. Parser bug?
-                        if(parent.nodeName.toLowerCase() == "script" && node.nodeName.toLowerCase() == "#text") {
-                        
-                            parent.text = node.nodeValue;
+                        /*
+                         * Search begins at the first defined insertion point:
+                         * 1 parent (for recursive group insertion)
+                         * 2 streamCursor.executingScript.parentNode
+                         *   (if script parent was not know)
+                         * 3 document.body (if script did not attach
+                         *   successfully)
+                         */
+                        var rawCursor = {
+
+                            parent: null,
+
+                            sibling: null
+
+                        };
+
+                        if (rawParent) {
+
+                            rawCursor.parent = rawParent;
+
+                        } else if (self.streamCursor.executingScript) {
+
+                            rawCursor.parent = self.streamCursor.executingScript.parentNode;
+
+                            rawCursor.sibling = self.streamCursor.executingScript;
+
                         } else {
-                            
-                            parent.appendChild(node);
+
+                            rawCursor.parent = document.body;
+
                         }
-                    } else {
-                        
-                        root.parentNode.insertBefore(node, root);
+
+                        return (function getFirstNonClosedParent(cursor) {
+
+                            var finalCursor;
+
+                            if (!cursor.parent.closed) {
+
+                                /*
+                                 * Current cursor is fine
+                                 */
+                                finalCursor = cursor;
+
+                            } else if (cursor.parent.parentNode) {
+
+                                /*
+                                 * Climb up the tree
+                                 */
+                                finalCursor = getFirstNonClosedParent({
+
+                                    parent: cursor.parent.parentNode,
+
+                                    sibling: cursor.parent
+                                });
+
+                            } else {
+
+                                /*
+                                 * Fallback: use document.body if
+                                 * everything is closed
+                                 */
+                                finalCursor = {
+
+                                    parent: document.body,
+
+                                    sibling: null
+
+                                };
+
+                            }
+
+                            return finalCursor;
+
+                        })(rawCursor);
+                    };
+
+                    /*
+                     * Given HTMLElements node, cursor, find the most immediate
+                     * ancestor of 'cursor' for which 'node' is a valid child,
+                     * i.e. <div> cannot be a child of <p>.  Search begins
+                     * with 'cursor'.
+                     *
+                     * Closes all invalid nodes encountered during the
+                     * search.
+                     */
+                    var findValidAncestorAndCloseNodes = function(node, cursor) {
+
+                        var parent = cursor.parent;
+
+                        if (DJSUtil.isValidParent(node, parent)) {
+
+                            return cursor;
+
+                        } else {
+
+                            parent.closed = true;
+
+                            if (parent.parentNode) {
+
+                                return findValidAncestorAndCloseNodes(node, {
+                                    parent: parent.parentNode,
+                                    sibling: parent
+                                });
+
+                            } else {
+
+                                return document.body;
+
+                            }
+                        }
+                    };
+
+                    var cursor = getEffectiveStreamCursor(),
+                        node = self.convertAbstractElement(data),
+                        name = node.nodeName.toLowerCase();
+
+                    /*
+                     * Cursor will be either
+                     * > the parent node in the the insertion group
+                     * > the parent node of document.write's callee script node
+                     * > the nearest non-closed parent node of one of the above
+                     */
+                    try {
+
+                        if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
+
+                            cursor.parent.text = node.nodeValue;
+
+                        } else {
+
+                            var parent, sibling;
+
+                            cursor = findValidAncestorAndCloseNodes(node, cursor);
+
+                            parent = cursor.parent, sibling = cursor.sibling;
+
+                            if (sibling) {
+
+                                parent.insertBefore(node, sibling);
+
+                            } else {
+
+                                parent.appendChild(node);
+
+                            }
+                        }
+
+                        if (data.children) {
+
+                            self.insert(data.children, node);
+
+                        }
+
+                    } catch(e) {
+
+                        DJSUtil.log('Insert failed');
+                        DJSUtil.error(e);
                     }
 
-                    if(data.children) {
-                        
-                        self.insert(data.children, node);
-                    }
                 }
             );
         }
@@ -1816,6 +2092,8 @@ exports.DomUtils = DomUtils;
                     precacheObject.data = self.src;
                     precacheObject.width = 0;
                     precacheObject.height = 0;
+                    precacheObject.style.position = "absolute";
+                    precacheObject.style.left = "-999";
 
                     appendTarget.appendChild(precacheObject);
                 }
@@ -1850,7 +2128,9 @@ exports.DomUtils = DomUtils;
             var self = this,
                 script = self.originalScript;
 
-			slaveDocument.executingScript = script;
+            slaveDocument.streamCursor = {
+                executingScript: script || document.body.firstChild
+            };
 			
             if(self.external) {
 
@@ -1881,7 +2161,7 @@ exports.DomUtils = DomUtils;
 
                 newScript.onerror = function() {
 
-                    DJSUtil.log('Error while attempting to execute this external script: ' + self.src);
+                    DJSUtil.error('Error while attempting to execute this external script: ' + self.src);
                     
                     detachHandlers();
 
@@ -1901,7 +2181,7 @@ exports.DomUtils = DomUtils;
                     slaveDocument.flush();
                 } catch(e) {
                     
-                    DJSUtil.log(e + ' while attempting to execute this inline script: ');
+                    DJSUtil.error(e + ' while attempting to execute this inline script: ');
                     DJSUtil.inspect(script);
 
                     callback(false);
@@ -2073,7 +2353,7 @@ exports.DomUtils = DomUtils;
                                             DJSUtil.log('Executed ' + slaves.length + ' scripts so far; ' + captives.length + ' scripts left in the queue...');
                                         } else {
 
-                                            DJSUtil.log('Failed execution!');
+                                            DJSUtil.error('Failed execution!');
                                         }
 
                                         executeNext();
