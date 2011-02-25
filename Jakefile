@@ -135,7 +135,11 @@ var uglifyParser = require('uglify-js').parser,
         
         "./lib/libraryprefix.js",
         "./vendor/htmlparser/lib/htmlparser.js",
+        "./lib/dominateprefix.js",
+        "./lib/utility.js",
+        "./lib/parsersemantics.js",
         "./lib/dominate.js",
+        "./lib/dominatesuffix.js",
         "./lib/librarysuffix.js"
     ];
 
