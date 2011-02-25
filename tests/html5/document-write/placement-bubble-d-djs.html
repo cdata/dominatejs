@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DJS Parser Bubbling Test</title>
+    
+    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <ul class="rightparent">
+        <li> </li>
+        <script type="text/djs">document.write('<div class="wrontparent"><li>I SHOULD BE GREEN AND BOLD</li></div>');</script>
+    </ul>
+</body>
+</html>
