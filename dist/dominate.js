@@ -1605,6 +1605,325 @@ exports.DomUtils = DomUtils;
                 'embedded': 1
             },
             contentModel: 'empty'
+        },
+        'iframe': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1,
+                'interactive': 1
+            },
+            contentModel: 'transparent'
+        },
+        'embed': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1,
+                'interactive': 1
+            },
+            contentModel: 'empty'
+        },
+        'object': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1,
+                'interactive': 1
+            }, // TODO: Object is Interactive only with attribute @usemap
+            contentModel: 'transparent',
+            inclusive: {
+                'param': 1
+            }
+        },
+        'param': {
+            contentCategories: { },
+            contentModel: 'empty'
+        },
+        'video': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1
+            },
+            contentModel: 'transparent'
+            // TODO: "media elements" are disallowed as children of <video>
+            // http://dev.w3.org/html5/spec/Overview.html#media-element
+        },
+        'audio': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1,
+                'interactive': 1
+                // TODO: audio tag is interactive only with @controls
+            },
+            contentModel: 'transparent'
+            // TODO: "media elements" are disallowed as children of <audio>
+            // http://dev.w3.org/html5/spec/Overview.html#media-element
+        },
+        'source': {
+            contentCategories: { },
+            contentModel: 'empty'
+        },
+        'track': {
+            contentCategories: { },
+            contentModel: 'empty'
+        },
+        'canvas': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1
+            },
+            contentModel: 'transparent'
+        },
+        'map': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'transparent'
+        },
+        'area': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'empty'
+        },
+        'table': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'empty',
+            inclusive: {
+                'caption': 1,
+                'colgroup': 1,
+                'thead': 1,
+                'tfoot': 1,
+                'tbody': 1,
+                'tr': 1 // TODO: spec is inconsistent about how parser should
+                // handle table > tr - does it insert a tbody or call it OK?
+            }
+        },
+        'caption': {
+            contentCategories: { },
+            contentModel: 'flow',
+            exclusive: {
+                'table': 'recursive'
+            }
+        },
+        'colgroup': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'col': 1
+            } // technically col tag is only allowed with @span
+        },
+        'col': {
+            contentCategories: { },
+            contentModel: 'empty'
+        },
+        'tbody': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'tr': 1
+            }
+        },
+        'thead': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'tr': 1
+            }
+        },
+        'tfoot': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'tr': 1
+            }
+        },
+        'tr': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'td': 1,
+                'th': 1
+            }
+        },
+        'td': {
+            contentCategories: {
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'th': {
+            contentCategories: { },
+            contentModel: 'phrasing'
+        },
+        'form': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'flow',
+            exclusive: {
+                'form': 'recursive'
+            }
+        },
+        'fieldset': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow',
+            inclusive: {
+                'legend': 1
+            } // <legend> is only allowed as first child of <fieldset>
+        },
+        'legend': {
+            contentCategories: { },
+            contentModel: 'phrasing'
+        },
+        'label': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'phrasing'
+            // label can have only one labelable decendant, and it must
+            // be linked to that decendant
+            // http://dev.w3.org/html5/spec/Overview.html#category-label
+        },
+        'input': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'empty'
+            // @type=hidden -> non-interactive
+        },
+        'button': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'phrasing'
+            // TODO: 'interactive'-type decendents disallowed
+        },
+        'select': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'empty',
+            inclusive: {
+                'option': 1,
+                'optgroup': 1
+            }
+        },
+        'datalist': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing',
+            inclusive: {
+                'option': 1
+            }
+        },
+        'optgroup': {
+            contentCategories: { },
+            contentModel: 'empty',
+            inclusive: {
+                'option': 1
+            }
+        },
+        'option': {
+            contentCategories: { },
+            contentModel: 'text'
+        },
+        'textarea': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'text'
+        },
+        'keygen': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'empty'
+        },
+        'output': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'progress': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing',
+            exclusive: {
+                'progress': 'recursive'
+            }
+        },
+        'meter': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing',
+            exclusive: {
+                'meter': 'recursive'
+            }
+        },
+        'details': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1,
+                'interactive': 1
+            },
+            contentModel: 'flow',
+            inclusive: {
+                'summary': 1
+            }
+        },
+        'summary': {
+            contentCategories: { },
+            contentModel: 'phrasing'
+        },
+        'command': {
+            contentCategories: {
+                'metadata': 1,
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'empty'
+        },
+        'menu': {
+            contentCategories: {
+                'flow': 1,
+                'interactive': 1
+            },
+            contentModel: 'flow',
+            inclusive: {
+                'li': 1
+            }
         }
     };
 
@@ -1625,47 +1944,97 @@ exports.DomUtils = DomUtils;
  * > HTML Directives, HTML Comments and text nodes are all assigned to the
  *   'text' content category, for simplicity.
  *
- * > 'transparent' and 'text' are treated as content models
+ * > 'transparent', 'empty'  and 'text' are treated as content models
  *
  */
     DJSParserSemantics.isValidParent = function(node, parentNode) {
 
         var checkExplicitRules = function(parentRules, nodeName) {
+
                 if (parentRules.inclusive && nodeName in parentRules.inclusive) {
+
                     return true;
+
                 } else if (parentRules.exclusive && nodeName in parentRules.exclusive) {
+
                     return false;
+
                 }
+
                 return null;
+
             },
+
             checkContentModel = function(parentRules, nodeRules) {
-                return (parentRules.contentModel in nodeRules.contentCategories);
+
+                var conclusion;
+
+                switch (parentRules.contentModel) {
+
+                    case "transparent" :
+
+                        conclusion = true;
+
+                        break;
+
+                    case "empty" :
+
+                        conclusion = false;
+
+                        break;
+
+                    default:
+
+                        conclusion = parentRules.contentModel in nodeRules.contentCategories;
+
+                }
+
+                return conclusion;
             };
 
         var rules = DJSParserSemantics.elementSemantics,
+
             nodeName = node.nodeName.toLowerCase(),
+
             parentNodeName = parentNode.nodeName.toLowerCase(),
+
             parentRules, conclusion;
 
+
         // No rules defined for parent?  Call it good.
+
         if (!rules[parentNodeName]) {
+
             return true;
+
         }
+
         parentRules = rules[parentNodeName];
 
+
         // First, try explicit rules
+
         conclusion = checkExplicitRules(rules[parentNodeName], nodeName);
+
         if (conclusion !== null) {
+
             return conclusion;
+
         }
+
 
         // Now try content model / content category correspondance.
         // We can't proceed without child content category data, or parent
         //  content model data, so let those cases slide
+
         if (!rules[nodeName] || !rules[nodeName].contentCategories
+
             || !parentRules.contentModel) {
+
             return true;
+
         }
+
         return checkContentModel(parentRules, rules[nodeName]);
 
     };
