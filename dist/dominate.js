@@ -1088,28 +1088,28 @@ exports.DomUtils = DomUtils;
 
     var DJSParserSemantics = {};
 
-    /*
-     * DJSUtil.htmlSemanticRules
-     *
-     * Based on HTML5 semantics: 
-     * http://dev.w3.org/html5/spec/Overview.html#semantics
-     *
-     * Each tag has one or more of these attributes
-     *  which define its possible valid relationship to other tags.
-     *
-     * @contentCategories (required) = the set of content model categories
-     *   to which this tag belongs
-     *
-     * @contentModel (optional) = all valid children must belong to this 
-     *   content model category
-     *
-     * @inclusive (optional) = tags explicitly allowed as valid children,
-     *   regardless of content model rules
-     *
-     * @exclusive (optional) = tags explicitly disallowed as valid children,
-     *   regardless of content model rules.  A tag mentioned with value 'recursive'
-     *   implies that this tag cannot even be an indirect descenant of this tag.
-     */
+/*
+ * DJSUtil.htmlSemanticRules
+ *
+ * Based on HTML5 semantics: 
+ * http://dev.w3.org/html5/spec/Overview.html#semantics
+ *
+ * Each tag has one or more of these attributes
+ *  which define its possible valid relationship to other tags.
+ *
+ * @contentCategories (required) = the set of content model categories
+ *   to which this tag belongs
+ *
+ * @contentModel (optional) = all valid children must belong to this 
+ *   content model category
+ *
+ * @inclusive (optional) = tags explicitly allowed as valid children,
+ *   regardless of content model rules
+ *
+ * @exclusive (optional) = tags explicitly disallowed as valid children,
+ *   regardless of content model rules.  A tag mentioned with value 'recursive'
+ *   implies that this tag cannot even be an indirect descenant of this tag.
+ */
     DJSParserSemantics.elementSemantics = {
         'head': {
             contentCategories: {},
@@ -1608,26 +1608,26 @@ exports.DomUtils = DomUtils;
         }
     };
 
-    /*
-     * DJSParserSemantics.isValidParent
-     *
-     * This helper function returns true if node can be inserted into parentNode
-     * according to HTML5 semantic rules.
-     *
-     *
-     * Notes on content model processing:
-     *
-     * > We only care about content model rules which could cause an invalid
-     *   parent-child pairing.  Our objective is to predict when an HTML parser
-     *   will perform a parse recovery action (closing a parent tag), not to
-     *   fully validate an HTML document.
-     *
-     * > HTML Directives, HTML Comments and text nodes are all assigned to the
-     *   'text' content category, for simplicity.
-     *
-     * > 'transparent' and 'text' are treated as content models
-     *
-     */
+/*
+ * DJSParserSemantics.isValidParent
+ *
+ * This helper function returns true if node can be inserted into parentNode
+ * according to HTML5 semantic rules.
+ *
+ *
+ * Notes on content model processing:
+ *
+ * > We only care about content model rules which could cause an invalid
+ *   parent-child pairing.  Our objective is to predict when an HTML parser
+ *   will perform a parse recovery action (closing a parent tag), not to
+ *   fully validate an HTML document.
+ *
+ * > HTML Directives, HTML Comments and text nodes are all assigned to the
+ *   'text' content category, for simplicity.
+ *
+ * > 'transparent' and 'text' are treated as content models
+ *
+ */
     DJSParserSemantics.isValidParent = function(node, parentNode) {
 
         var checkExplicitRules = function(parentRules, nodeName) {
