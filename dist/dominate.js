@@ -1583,7 +1583,7 @@ exports.DomUtils = DomUtils;
             contentModel: 'empty'
         },
         'ins': {
-            // TODO: ins become Flow type when it has Flow children
+            // TODO: ins becomes Flow type when it has Flow children
             contentCategories: {
                 'flow': 1,
                 'phrasing': 1
@@ -2218,7 +2218,7 @@ exports.DomUtils = DomUtils;
                             return finalCursor;
 
                         })(rawCursor);
-                    };
+                    },
 
                     // Find the ancestor of 'cursor' for which 'node' is a 
                     // valid child, i.e. <div> cannot be a child of <p>.  
@@ -2226,7 +2226,7 @@ exports.DomUtils = DomUtils;
                     //
                     // Closes all invalid nodes encountered during the
                     // search.
-                    var findValidAncestorAndCloseNodes = function(node, cursor) {
+                        findValidAncestorAndCloseNodes = function(node, cursor) {
 
                         var parent = cursor.parent;
 
@@ -2250,6 +2250,17 @@ exports.DomUtils = DomUtils;
                                 return document.body;
 
                             }
+                        }
+                    },
+                    
+                        insertAfter = function(node, target) {
+
+                        if (target.nextSibling) {
+
+                            target.parentNode.insertBefore(node, target.nextSibling);
+                        } else {
+
+                            target.parentNode.appendChild(node);
                         }
                     };
 
@@ -2278,7 +2289,7 @@ exports.DomUtils = DomUtils;
 
                             if (sibling) {
 
-                                parent.insertBefore(node, sibling);
+                                insertAfter(node, sibling);
 
                             } else {
 
@@ -2883,12 +2894,18 @@ exports.DomUtils = DomUtils;
                 window = self.window,
                 nativeMethods = self.nativeMethods;
 
-            if(nativeMethods.addEventListener) {
+            if (document.readyState === "complete") {
 
-                nativeMethods.addEventListener.call(window, 'load', callback, true);
+                callback();
             } else {
 
-                nativeMethods.attachEvent('onload', callback);
+                if(nativeMethods.addEventListener) {
+
+                    nativeMethods.addEventListener.call(window, 'load', callback, true);
+                } else {
+
+                    nativeMethods.attachEvent('onload', callback);
+                }
             }
         },
 /*
