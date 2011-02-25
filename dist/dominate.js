@@ -1088,67 +1088,546 @@ exports.DomUtils = DomUtils;
 
     var DJSParserSemantics = {};
 
-/*
- * DJSParserSemantics.insertionRules
- * 
- * These rules govern the insertion of elements into other elements in the
- * context of the DOM.
- * 
- * Based on HTML5 semantics: 
- * http://dev.w3.org/html5/spec/Overview.html
- */
+    /*
+     * DJSUtil.htmlSemanticRules
+     *
+     * Based on HTML5 semantics: 
+     * http://dev.w3.org/html5/spec/Overview.html#semantics
+     *
+     * Each tag has one or more of these attributes
+     *  which define its possible valid relationship to other tags.
+     *
+     * @contentCategories (required) = the set of content model categories
+     *   to which this tag belongs
+     *
+     * @contentModel (optional) = all valid children must belong to this 
+     *   content model category
+     *
+     * @inclusive (optional) = tags explicitly allowed as valid children,
+     *   regardless of content model rules
+     *
+     * @exclusive (optional) = tags explicitly disallowed as valid children,
+     *   regardless of content model rules.  A tag mentioned with value 'recursive'
+     *   implies that this tag cannot even be an indirect descenant of this tag.
+     */
     DJSParserSemantics.elementSemantics = {
         'head': {
-            inclusive: {
-                'html': 1
-            }
+            contentCategories: {},
+            contentModel: 'metadata'
          },
         'title': {
-            inclusive: {
-                'head': 1
-            }
+            contentCategories: {
+                'metadata': 1
+            },
+            contentModel: 'text'
         },
         'base': {
-            inclusive: {
-                'head': 1
-            }
+            contentCategories: {
+                'metadata': 1
+            },
+            contentModel: 'empty'
         },
         'link': {
-            exclusive: { }
+            contentCategories: {
+                'metadata': 1
+            },
+            contentModel: 'empty'
         },
         'meta': {
-            exclusive: { }
+            contentCategories: {
+                'metadata': 1
+            },
+            contentModel: 'empty'
         },
         'style': {
-            exclusive: { }
+            contentCategories: {
+                'metadata': 1,
+                'flow': 1
+            },
+            contentModel: 'text'
         },
         'script': {
-            exclusive: { }
+            contentCategories: {
+                'metadata': 1,
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'text'
         },
         'noscript': {
+            contentCategories: {
+                'metadata': 1,
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'transparent',
+            // noscript cannot be a descendant of noscript, even indirectly:
             exclusive: {
-                'noscript': 1
-            } //TODO: noscript cannot be a descendant of noscript, even indirectly
+                'noscript': 'recursive' 
+            }
         },
         'body': {
+            contentCategories: {
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'section': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'nav': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'article': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'aside': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'h1': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'h2': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'h3': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'h4': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'h5': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'h6': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'hgroup': {
+            contentCategories: {
+                'flow': 1,
+                'heading': 1
+            },
+            // hgroup can only contain hX elements as children
+            contentModel: 'empty',
             inclusive: {
-                'html': 1
+                'h1': 1,
+                'h2': 1,
+                'h3': 1,
+                'h4': 1,
+                'h5': 1,
+                'h6': 1
             }
         },
-        'div': { // this is a hack until proper flow / phrasing classes are used
+        'header': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'flow',
             exclusive: {
-                'p': 1
+                'header': 'recursive',
+                'footer': 'recursive'
             }
+        },
+        'footer': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'flow',
+            exclusive: {
+                'header': 'recursive',
+                'footer': 'recursive'
+            }
+        },
+        'address': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'flow',
+            exclusive: {
+                'address': 'recursive',
+                'header': 'recursive',
+                'footer': 'recursive'
+            } // TODO: in theory, all heading and sectioning elements are also disallowed
+        },
+        'p': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'hr': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'empty'
+        },
+        'pre': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'blockquote': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow'
+        },
+        'ol': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'empty',
+            inclusive: {
+                'li': 1
+            }
+        },
+        'ul': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'empty',
+            inclusive: {
+                'li': 1
+            }
+        },
+        'li': {
+            // LI lives outside content model rules
+            // LI is only allowed where explicily allowed
+            contentCategories: {},
+            contentModel: 'flow'
+        },
+        'dl': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'empty',
+            inclusive: {
+                'dt': 1,
+                'dd': 1
+            }
+        },
+        'dt': {
+            // DT lives outside content model rules
+            // DT is only allowed where explicily allowed
+            contentCategories: {},
+            contentModel: 'phrasing'
+        },
+        'dd': {
+            // DD lives outside content model rules
+            // DD is only allowed where explicily allowed
+            contentCategories: {},
+            contentModel: 'flow'
+        },
+        'figure': {
+            contentCategories: {
+                'flow': 1,
+                'sectioning': 1
+            },
+            contentModel: 'flow',
+            inclusive: {
+                'figcaption': 1
+            }
+        },
+        'figcaption': {
+            contentCategories: {},
+            contentModel: 'flow'
+        },
+        'div': {
+            contentCategories: {
+                'flow': 1
+            },
+            contentModel: 'flow'
+        },
+        'a': {
+            contentCategories: {
+                // A is sometimes not Phrasing, if it has a Flow child
+                'flow': 1,
+                'phrasing': 1,
+                'interactive': 1
+            },
+            contentModel: 'transparent',
+            exclusive: {
+                // TODO: all interactive content
+            }
+        },
+        'em': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'strong': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'small': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        's': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'cite': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'q': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'dfn': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing',
+            exclusive: {
+                'dfn': 'recursive'
+            }
+        },
+        'abbr': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'time': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'code': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'var': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'abbr': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'samp': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'kbd': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'sub': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'sup': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'i': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'b': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'mark': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'ruby': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing',
+            inclusive: {
+                'rt': 1,
+                'rp': 1
+            }
+        },
+        'rt': {
+            contentCategories: {},
+            contentModel: 'phrasing'
+        },
+        'rp': {
+            contentCategories: {},
+            contentModel: 'phrasing'
+        },
+        'bdi': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'bdo': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'span': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'phrasing'
+        },
+        'br': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'empty'
+        },
+        'wbr': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'empty'
+        },
+        'ins': {
+            // TODO: ins become Flow type when it has Flow children
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'transparent'
+        },
+        'del': {
+            // TODO: del become Flow type when it has Flow children
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1
+            },
+            contentModel: 'transparent'
+        },
+        'img': {
+            contentCategories: {
+                'flow': 1,
+                'phrasing': 1,
+                'embedded': 1
+            },
+            contentModel: 'empty'
         }
-        // TODO: define rules in terms of content models (tag classes), i.e. flow content vs phrasing content
     };
 
-/*
- * DJSParserSemantics.isValidParent
- *
- * This helper function returns true if node can be inserted into parentNode
- * according to HTML5 semantic rules.
- */
+    /*
+     * DJSParserSemantics.isValidParent
+     *
+     * This helper function returns true if node can be inserted into parentNode
+     * according to HTML5 semantic rules.
+     *
+     *
+     * Notes on content model processing:
+     *
+     * > We only care about content model rules which could cause an invalid
+     *   parent-child pairing.  Our objective is to predict when an HTML parser
+     *   will perform a parse recovery action (closing a parent tag), not to
+     *   fully validate an HTML document.
+     *
+     * > HTML Directives, HTML Comments and text nodes are all assigned to the
+     *   'text' content category, for simplicity.
+     *
+     * > 'transparent' and 'text' are treated as content models
+     *
+     */
     DJSParserSemantics.isValidParent = function(node, parentNode) {
 
         var rules = DJSParserSemantics.elementSemantics,
