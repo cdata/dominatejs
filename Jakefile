@@ -113,9 +113,17 @@ var uglifyParser = require('uglify-js').parser,
         
     },
     minify = function(input, outputFile, callback) {
-    
-        var minified = uglifyProcessor.gen_code(uglifyProcessor.ast_squeeze(uglifyParser.parse(input)));
-        
+   
+        try {
+
+            var minified = uglifyProcessor.gen_code(uglifyProcessor.ast_squeeze(uglifyParser.parse(input)));
+
+        } catch(e) {
+
+            util.error("ERROR: " + e);
+        }
+
+
         fs.writeFile(
             outputFile,
             minified,
