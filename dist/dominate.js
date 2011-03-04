@@ -2189,6 +2189,7 @@ exports.DomUtils = DomUtils;
                                         node.className += value;
                                         break;
                                     default:
+                                        // TODO style and on* attributes can't be set this way in IE<8
                                         DJSUtil.setAttribute.call(node, key, value);
                                         break;
                                 }
@@ -2331,7 +2332,9 @@ exports.DomUtils = DomUtils;
 
                             if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                                cursor.parent.text = node.nodeValue;
+                                var inlineText = slaveScripts.handleInlineScriptText(
+                                    cursor.parent, node.nodeValue);
+                                cursor.parent.text = inlineText;
 
                             } else {
 
@@ -2471,7 +2474,7 @@ exports.DomUtils = DomUtils;
         var self = this;
         self.document = document;
 
-        self.subscriptQueue = [];
+        self.subscriptStack = [];
 
         self.nativeMethods = {
             
@@ -2564,7 +2567,7 @@ exports.DomUtils = DomUtils;
 
                 if(type.indexOf('script') != -1) {
 
-                    self.queueSubscript(element);
+                    self.pushSubscript(element);
                 }
 
                 return element;
@@ -2697,23 +2700,24 @@ exports.DomUtils = DomUtils;
         },
 
 /*
- * DJSDocument.queueSubscript
+ * DJSDocument.pushSubscript
  *
  * TODO: Document me
+ * TODO generalize to inline scripts
  */
-        queueSubscript: function(element) {
+        pushSubscript: function(element) {
 
-            DJSUtil.log('Queueing a subscript of the current execution: ');
+            DJSUtil.log('Pushing a subscript of the current execution: ');
             DJSUtil.inspect(element);
             
             var self = this,
-                subscriptQueue = self.subscriptQueue,
+                subscriptStack = self.subscriptStack,
                 parentStreamCursor = self.streamCursor,
-                popQueue = function() {
+                popStack = function() {
                     
-                    subscriptQueue.pop();
+                    subscriptStack.pop();
 
-                    if(subscriptQueue.length == 0) {
+                    if(subscriptStack.length == 0) {
 
                         slaveScripts.resume();
                     }
@@ -2738,16 +2742,17 @@ exports.DomUtils = DomUtils;
                     //self.flush();
                     self.streamCursor = parentStreamCursor;
                     removeHandlers();
-                    popQueue();
+                    popStack();
                 },
                 errorHandler = function() {
 
                     self.streamCursor = parentStreamCursor;
                     removeHandlers();
-                    popQueue();
+                    popStack();
                 },
-                // TODO: Mega hack to make sure queued subscripts don't pause
+                // TODO: Mega hack to make sure pushed subscripts don't pause
                 // us indefinitely. We MUST to find a better way around this.
+                // (this is in case a script node is created but never added to the live DOM)
                 timeout = setTimeout(
                     function() {
                         
@@ -2933,6 +2938,12 @@ exports.DomUtils = DomUtils;
                 window = self.window,
                 nativeMethods = self.nativeMethods,
                 handlers = self.handlers;
+
+            window.DJS = window.DJS || {};
+            window.DJS.inlineScriptDone = function inlineScriptDone(scriptCode) {
+                var script = slaveScripts.inlineScripts[scriptCode];
+                script.whenLoaded();
+            };
 
             if(window.__defineSetter__ && window.__defineGetter__) {
                 
@@ -3306,6 +3317,7 @@ exports.DomUtils = DomUtils;
 
         self.slaves = [];
         self.captives = [];
+        self.inlineScripts = [];
 
         self.urlCache = {};
         self.executing = false;
@@ -3378,6 +3390,20 @@ exports.DomUtils = DomUtils;
                 );
 
             search();
+        },
+
+/*
+ * DJSScriptManager.handleInlineScriptText
+ *
+ * Inject exection flow mamangement snippet
+ */
+        handleInlineScriptText: function(scriptNode, scriptText) {
+
+            var script = scriptNode,
+                code = this.inlineScripts.push(script) - 1,
+                snippet = "\n(function(){window.DJS.inlineScriptDone(" + code + ")})();";
+
+            return scriptText + snippet;
         },
 
 /*
