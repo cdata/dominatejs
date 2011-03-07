@@ -16,16 +16,13 @@
             function(event) {
                 
                 var target = $(event.currentTarget),
-                    test = target.attr('rel'),
-                    testName = target.text();
+                    test = target.attr('rel');
                 
                 normalView.attr('src', '/tests/' + test + '.html');
                 normalViewLink.attr('href', '/tests/' + test + '.html');
-                normalViewLink.text(testName);
 
                 djsView.attr('src', '/tests/' + test + '-djs.html');
                 djsViewLink.attr('href', '/tests/' + test + '-djs.html');
-                djsViewLink.text(testName);
                 
                 if(lastTarget) {
                     
