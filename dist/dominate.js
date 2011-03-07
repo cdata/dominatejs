@@ -2332,8 +2332,8 @@ exports.DomUtils = DomUtils;
 
                             if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                                var inlineText = slaveScripts.handleInlineScriptText(
-                                    cursor.parent, node.nodeValue);
+                                var inlineText = slaveScripts.handleInlineScriptText(node.nodeValue);
+                                slaveScripts.pushSubscript(inlineText);
                                 cursor.parent.text = inlineText;
 
                             } else {
@@ -2474,8 +2474,6 @@ exports.DomUtils = DomUtils;
         var self = this;
         self.document = document;
 
-        self.subscriptStack = [];
-
         self.nativeMethods = {
             
             write: document.write,
@@ -2567,7 +2565,7 @@ exports.DomUtils = DomUtils;
 
                 if(type.indexOf('script') != -1) {
 
-                    self.pushSubscript(element);
+                    slaveScripts.pushSubscript(element);
                 }
 
                 return element;
@@ -2699,88 +2697,6 @@ exports.DomUtils = DomUtils;
             }
         },
 
-/*
- * DJSDocument.pushSubscript
- *
- * TODO: Document me
- * TODO generalize to inline scripts
- */
-        pushSubscript: function(element) {
-
-            DJSUtil.log('Pushing a subscript of the current execution: ');
-            DJSUtil.inspect(element);
-            
-            var self = this,
-                subscriptStack = self.subscriptStack,
-                parentStreamCursor = self.streamCursor,
-                popStack = function() {
-                    
-                    subscriptStack.pop();
-
-                    if(subscriptStack.length == 0) {
-
-                        slaveScripts.resume();
-                    }
-                },
-                removeHandlers = function() {
-
-                    DJSUtil.removeEventListener.call(element, 'load', loadHandler, true);
-                    DJSUtil.removeEventListener.call(element, 'readystatechange', loadHandler, true);
-                    DJSUtil.removeEventListener.call(element, 'error', errorHandler, true);
-                },
-                loadHandler = function() {
-
-                    var readyState = element.readyState;
-
-                    clearTimeout(timeout);
-
-                    if(readyState && readyState != 'complete' && readyState != 'loaded') {
-
-                        return;
-                    }
-                   
-                    //self.flush();
-                    self.streamCursor = parentStreamCursor;
-                    removeHandlers();
-                    popStack();
-                },
-                errorHandler = function() {
-
-                    self.streamCursor = parentStreamCursor;
-                    removeHandlers();
-                    popStack();
-                },
-                // TODO: Mega hack to make sure pushed subscripts don't pause
-                // us indefinitely. We MUST to find a better way around this.
-                // (this is in case a script node is created but never added to the live DOM)
-                timeout = setTimeout(
-                    function() {
-                        
-                        if(!element.parentNode) {
-
-                            DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
-                            errorHandler();
-                        }
-                    }, 
-                    30
-                );
-
-
-            slaveScripts.pause();
-                    
-            self.streamCursor = element || document.body.firstChild;
-
-            if(DJSUtil.navigator.IE) {
-
-                DJSUtil.addEventListener.call(element, 'readystatechange', loadHandler, true);
-            } else {
-
-                DJSUtil.addEventListener.call(element, 'load', loadHandler, true);
-            }
-
-            DJSUtil.addEventListener.call(element, 'error', errorHandler, true);
-
-        },
 
 /*
  * DJSDocument.write
@@ -2940,9 +2856,8 @@ exports.DomUtils = DomUtils;
                 handlers = self.handlers;
 
             window.DJS = window.DJS || {};
-            window.DJS.inlineScriptDone = function inlineScriptDone(scriptCode) {
-                var script = slaveScripts.inlineScripts[scriptCode];
-                script.whenLoaded();
+            window.DJS.inlineScriptDone = function inlineScriptDone() {
+                slaveScripts.fireSubscriptDone();
             };
 
             if(window.__defineSetter__ && window.__defineGetter__) {
@@ -3283,7 +3198,6 @@ exports.DomUtils = DomUtils;
                     DJSUtil.inspect(script);
 
                     callback(false);
-                    // TODO: Reset slave document buffer without a flush..
                 }
 
                 callback(true);
@@ -3317,12 +3231,27 @@ exports.DomUtils = DomUtils;
 
         self.slaves = [];
         self.captives = [];
-        self.inlineScripts = [];
+        self.subscriptStack = [];
 
         self.urlCache = {};
         self.executing = false;
         self.currentExecution = null;
         self.paused = self.breakExecution = false;
+
+        // After every subscript finishes, 
+        self.subscriptDoneHandlers = [];
+        self.onSubscriptDone(function popScriptStack() {
+                    
+            var done = self.subscriptStack.pop();
+
+            DJSUtil.log("Script completed: ");
+            DJSUtil.info(done);
+
+            if(self.subscriptStack.length == 0) {
+
+                self.resume();
+            }
+        });
     };
 
     DJSScriptManager.prototype = {
@@ -3397,11 +3326,9 @@ exports.DomUtils = DomUtils;
  *
  * Inject exection flow mamangement snippet
  */
-        handleInlineScriptText: function(scriptNode, scriptText) {
+        handleInlineScriptText: function(scriptText) {
 
-            var script = scriptNode,
-                code = this.inlineScripts.push(script) - 1,
-                snippet = "\n(function(){window.DJS.inlineScriptDone(" + code + ")})();";
+            var snippet = "\n(function(){window.DJS.inlineScriptDone()})();";
 
             return scriptText + snippet;
         },
@@ -3532,6 +3459,153 @@ exports.DomUtils = DomUtils;
                 self.paused = false;
                 self.execute();
             }
+        },
+
+/*
+ * DJSScriptManager.pushSubscript
+ *
+ * Push a new script onto our execution stack.  Top-level
+ *  script execution cannot resume until this stack
+ *  reaches 0
+ *
+ * For online scripts, track onload by injecting a callback
+ */
+        pushSubscript: function(elementOrText) {
+
+            var self = this;
+
+            if (typeof elementOrText === 'string') {
+
+                return self._pushInlineSubscript(elementOrText);
+            } else {
+
+                return self._pushExternalSubscript(elementOrText);
+            }
+        },
+
+        // 1 increase
+        _pushInlineSubscript : function(text) {
+            DJSUtil.log('Pushing an inline subscript of the current execution: ');
+            DJSUtil.inspect(text);
+            
+            var self = this,
+                subscriptStack = self.subscriptStack;
+
+            subscriptStack.push({
+                type: "inline",
+                text: text
+            });
+
+            self.pause();
+        },
+
+        _pushExternalSubscript : function(element) {
+
+            DJSUtil.log('Pushing a subscript of the current execution: ');
+            DJSUtil.inspect(element);
+            
+            var self = this,
+                subscriptStack = self.subscriptStack,
+                parentStreamCursor = slaveDocument.streamCursor,
+                popStack = function() {
+                    
+                    subscriptStack.pop();
+
+                    if(subscriptStack.length == 0) {
+
+                        self.resume();
+                    }
+                },
+                loadEventHandler = function() {
+
+                    var readyState = element.readyState;
+
+                    clearTimeout(timeout);
+
+                    if(readyState && readyState != 'complete' && readyState != 'loaded') {
+
+                        return;
+                    }
+                   
+                    //self.flush();
+                    slaveDocument.streamCursor = parentStreamCursor;
+                    removeHandlers();
+                    // TODO: this part should become the global script-complete handler:
+                    //popStack();
+                    self.fireSubscriptDone();
+                },
+                removeHandlers = function() {
+
+                    DJSUtil.removeEventListener.call(element, 'load', loadEventHandler, true);
+                    DJSUtil.removeEventListener.call(element, 'readystatechange', loadEventHandler, true);
+                    DJSUtil.removeEventListener.call(element, 'error', errorHandler, true);
+                },
+                errorHandler = function() {
+
+                    slaveDocument.streamCursor = parentStreamCursor;
+                    removeHandlers();
+                    self.fireSubscriptDone();
+                    //popStack();
+                },
+                // TODO: Mega hack to make sure pushed subscripts don't pause
+                // us indefinitely. We MUST to find a better way around this.
+                // (this is in case a script node is created but never added to the live DOM)
+                timeout = setTimeout(
+                    function() {
+                        
+                        if(!element.parentNode) {
+
+                            DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
+                            errorHandler();
+                        }
+                    }, 
+                    30
+                );
+
+
+            subscriptStack.push({
+                type: "external",
+                element: element
+            });
+            self.pause();
+                    
+
+            // external only
+            // inline scripts can't modify the streamCursor as external
+            // scripts can (or can they?)
+            slaveDocument.streamCursor = element || document.body.firstChild;
+
+            // external only - use text hack here for internal
+            if(DJSUtil.navigator.IE) {
+
+                DJSUtil.addEventListener.call(element, 'readystatechange', loadEventHandler, true);
+            } else {
+
+                DJSUtil.addEventListener.call(element, 'load', loadEventHandler, true);
+            }
+
+            DJSUtil.addEventListener.call(element, 'error', errorHandler, true);
+
+        },
+
+        fireSubscriptDone: function() {
+            var self = this;
+
+            DJSUtil.forEach(self.subscriptDoneHandlers, function(handler) {
+
+                handler.call(self);
+            });
+        },
+
+/*
+ * DJSScriptManager.onSubscriptDone
+ *
+ * Attach a callback which will run whenever a subscript finishes
+ */
+        onSubscriptDone: function(callback) {
+            var self = this;
+
+            self.subscriptDoneHandlers.push(callback);
         }
     };
 
