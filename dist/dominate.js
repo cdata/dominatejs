@@ -2406,8 +2406,6 @@ exports.DomUtils = DomUtils;
                                                 break;
                                         }
                                     }
-
-                                    
                                 } else {
 
                                     // Setting attributes in sane browsers...
@@ -2415,39 +2413,6 @@ exports.DomUtils = DomUtils;
                                         case 'class':
                                             node.className += " " + value;
                                             break;
-                                        default:
-                                            DJSUtil.setAttribute.call(node, key, value);
-                                            break;
-                                    }
-
-                                }
-                                if(DJSUtil.navigator.IE && key.indexOf('on') == 0) {
-
-                                    DJSUtil.log('Adding event handler for ' + key);
-                                    node[key] = value;
-
-                                    node.attachEvent(
-                                        key,
-                                        function() {
-
-                                            (function() {
-
-                                                eval(value);
-                                            }).call(node);
-                                        }
-                                    );
-                                } else {
-                                    switch(key) {
-
-                                        case 'class':
-                                            node.className += value;
-                                            break;
-                                        case 'style':
-                                            if(DJSUtil.navigator.IE) {
-                                                
-                                                node.style.cssText = value;
-                                                break;
-                                            }
                                         default:
                                             DJSUtil.setAttribute.call(node, key, value);
                                             break;
@@ -2662,7 +2627,15 @@ exports.DomUtils = DomUtils;
 
                         if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                            cursor.parent.text = node.nodeValue;
+                            var script = cursor.parent;
+
+                            if(!DJSUtil.navigator.IE && !script.src) {
+
+                                script.type = "text/noexecute";
+                                DJSUtil.globalEval(node.nodeValue);
+                            }
+
+                            script.text = node.nodeValue;
 
                         } else {
 
