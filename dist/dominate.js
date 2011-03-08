@@ -881,7 +881,8 @@ exports.DomUtils = DomUtils;
 
             try {
 
-                console.error('[ DJS ] ' + out);
+                //console.error('[ DJS ] ' + out);
+                DJSUtil.log('[ DJS ] ' + out);
             } catch(e) {
 
                 DJSUtil.log('[ DJS ] ' + out);
@@ -1015,6 +1016,7 @@ exports.DomUtils = DomUtils;
         
         var self = this;
 
+        DJSUtil.log("[attr] " + attribute + ":" + value);
         if(self.setAttribute) {
 
             self.setAttribute(attribute, value);
@@ -1636,7 +1638,11 @@ exports.DomUtils = DomUtils;
             contentCategories: {
                 'flow': 1
             },
-            contentModel: 'empty',
+            // NOTE: All browsers consistently defy the HTML spec here:
+            // browsers treat UL as a valid parent of flow content
+            // when the spec says it can only have LI children
+            //contentModel: 'empty',
+            contentModel: 'flow',
             inclusive: {
                 'li': 1
             }
@@ -2582,7 +2588,17 @@ exports.DomUtils = DomUtils;
 
                 case 'comment':
                     
-                    return document.createComment(abstractElement.data);
+                    var comment;
+
+                    try {
+
+                        comment = document.createComment(abstractElement.data);
+                    } catch(e) {
+
+                        comment = document.createComment("error: malformed comment");
+                    }
+                         
+                    return comment;
 
                 case 'script':
                     
@@ -2678,8 +2694,6 @@ exports.DomUtils = DomUtils;
                     //   > insertion cursor will be parent element
                     //
 
-                    DJSUtil.inspect(data);
-
                     if (data.seen) {
 
                         if (data.children) {
@@ -2708,7 +2722,8 @@ exports.DomUtils = DomUtils;
 
                             if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                                var inlineText = slaveScripts.handleInlineScriptText(node.nodeValue);
+                                var inlineText = slaveScripts.handleInlineScriptText(
+                                    cursor.parent, node.nodeValue);
                                 cursor.parent.text = inlineText;
 
                             } else {
@@ -2874,12 +2889,13 @@ exports.DomUtils = DomUtils;
                     function(type) {
 
                         var args = arguments,
+                            caller = arguments.callee.caller || {},
                             nativeMethods = self.nativeMethods,
                             element = DJSUtil.feature.createElementCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
 
                         if(type.indexOf('script') != -1) {
 
-                            slaveScripts.pushSubscript(element);
+                            slaveScripts.pushSubscript(element, caller);
                         }
 
                         return element;
@@ -3040,8 +3056,11 @@ exports.DomUtils = DomUtils;
                     handlers = self.handlers;
 
                 window.DJS = window.DJS || {};
-                window.DJS.inlineScriptDone = function inlineScriptDone() {
-                    slaveScripts.fireSubscriptDone();
+                window.DJS.inlineScripts = [];
+                window.DJS.inlineScriptDone = function inlineScriptDone(code) {
+                    var done = window.DJS.inlineScripts[code];
+                    delete window.DJS.inlineScripts[code];
+                    slaveScripts.fireSubscriptDone(done);
                 };
 
                 DJSDominatrix.prototype.dominate.call(self);
@@ -3330,9 +3349,9 @@ exports.DomUtils = DomUtils;
 
         // After every subscript finishes, 
         self.subscriptDoneHandlers = [];
-        self.onSubscriptDone(function popScriptStack() {
+        self.onSubscriptDone(function popScriptStack(done) {
                     
-            var done = self.subscriptStack.pop();
+            self.subscriptStack.pop();
 
             DJSUtil.log("Script completed: ");
             DJSUtil.inspect(done);
@@ -3416,9 +3435,13 @@ exports.DomUtils = DomUtils;
   *
   * Inject exection flow mamangement snippet
   */
-        handleInlineScriptText: function(scriptText) {
+        handleInlineScriptText: function(scriptElement, scriptText) {
 
-            var snippet = "\n(function(){window.DJS.inlineScriptDone()})();";
+            var code = window.DJS.inlineScripts.push(scriptElement) - 1;
+                snippet = "\n(function(){window.DJS.inlineScriptDone("+code+")})();";
+
+            DJSUtil.log("Pushing script to inline script stack:");
+            DJSUtil.inspect(scriptText + snippet);
 
             return scriptText + snippet;
         },
@@ -3559,13 +3582,11 @@ exports.DomUtils = DomUtils;
  *
  * For online scripts, track onload by injecting a callback
  */
-        pushSubscript: function(element) {
+        pushSubscript: function(element, chaperone) {
 
-            DJSUtil.log('Pushing a subscript of the current execution: ');
-            DJSUtil.inspect(element);
-            
             var self = this,
                 subscriptStack = self.subscriptStack,
+                stackLevel,
                 parentStreamCursor = slaveDocument.streamCursor,
                 popStack = function() {
                     
@@ -3592,7 +3613,7 @@ exports.DomUtils = DomUtils;
                     removeHandlers();
                     // TODO: this part should become the global script-complete handler:
                     //popStack();
-                    self.fireSubscriptDone();
+                    self.fireSubscriptDone(element);
                 },
                 removeHandlers = function() {
 
@@ -3604,7 +3625,7 @@ exports.DomUtils = DomUtils;
 
                     slaveDocument.streamCursor = parentStreamCursor;
                     removeHandlers();
-                    self.fireSubscriptDone();
+                    self.fireSubscriptDone(element);
                     //popStack();
                 },
                 // TODO: Mega hack to make sure pushed subscripts don't pause
@@ -3616,6 +3637,8 @@ exports.DomUtils = DomUtils;
                         if(!element.parentNode) {
 
                             DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
+                            DJSUtil.inspect(element);
+                            DJSUtil.inspect(chaperone);
                             errorHandler();
                         }
                     }, 
@@ -3623,7 +3646,9 @@ exports.DomUtils = DomUtils;
                 );
 
 
-            subscriptStack.push(element);
+            stackLevel = subscriptStack.push(element);
+            DJSUtil.log('Pushing a subscript of the current execution (level '+stackLevel+'): ');
+            DJSUtil.inspect(element);
 
             self.pause();
                     
@@ -3646,12 +3671,12 @@ exports.DomUtils = DomUtils;
 
         },
 
-        fireSubscriptDone: function() {
+        fireSubscriptDone: function(element) {
             var self = this;
 
             DJSUtil.forEach(self.subscriptDoneHandlers, function(handler) {
 
-                handler.call(self);
+                handler.call(self, element);
             });
         },
 
