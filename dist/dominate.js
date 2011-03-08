@@ -882,7 +882,6 @@ exports.DomUtils = DomUtils;
             try {
 
                 console.error('[ DJS ] ' + out);
-                //DJSUtil.log('[ DJS ] ' + out);
             } catch(e) {
 
                 DJSUtil.log('[ DJS ] ' + out);
@@ -1016,7 +1015,6 @@ exports.DomUtils = DomUtils;
         
         var self = this;
 
-        DJSUtil.log("[attr] " + attribute + ":" + value);
         try {
 
             if(self.setAttribute) {
@@ -2547,38 +2545,6 @@ exports.DomUtils = DomUtils;
                                             break;
                                     }
 
-                                }
-                                if(DJSUtil.navigator.IE && key.indexOf('on') == 0) {
-
-                                    DJSUtil.log('Adding event handler for ' + key);
-                                    node[key] = value;
-
-                                    node.attachEvent(
-                                        key,
-                                        function() {
-
-                                            (function() {
-
-                                                eval(value);
-                                            }).call(node);
-                                        }
-                                    );
-                                } else {
-                                    switch(key) {
-
-                                        case 'class':
-                                            node.className += value;
-                                            break;
-                                        case 'style':
-                                            if(DJSUtil.navigator.IE) {
-                                                
-                                                node.style.cssText = value;
-                                                break;
-                                            }
-                                        default:
-                                            DJSUtil.setAttribute.call(node, key, value);
-                                            break;
-                                    }
                                 }
                             }
                         );
