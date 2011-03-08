@@ -2333,7 +2333,6 @@ exports.DomUtils = DomUtils;
                             if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
                                 var inlineText = slaveScripts.handleInlineScriptText(node.nodeValue);
-                                slaveScripts.pushSubscript(inlineText);
                                 cursor.parent.text = inlineText;
 
                             } else {
@@ -3245,7 +3244,7 @@ exports.DomUtils = DomUtils;
             var done = self.subscriptStack.pop();
 
             DJSUtil.log("Script completed: ");
-            DJSUtil.info(done);
+            DJSUtil.inspect(done);
 
             if(self.subscriptStack.length == 0) {
 
@@ -3470,36 +3469,7 @@ exports.DomUtils = DomUtils;
  *
  * For online scripts, track onload by injecting a callback
  */
-        pushSubscript: function(elementOrText) {
-
-            var self = this;
-
-            if (typeof elementOrText === 'string') {
-
-                return self._pushInlineSubscript(elementOrText);
-            } else {
-
-                return self._pushExternalSubscript(elementOrText);
-            }
-        },
-
-        // 1 increase
-        _pushInlineSubscript : function(text) {
-            DJSUtil.log('Pushing an inline subscript of the current execution: ');
-            DJSUtil.inspect(text);
-            
-            var self = this,
-                subscriptStack = self.subscriptStack;
-
-            subscriptStack.push({
-                type: "inline",
-                text: text
-            });
-
-            self.pause();
-        },
-
-        _pushExternalSubscript : function(element) {
+        pushSubscript: function(element) {
 
             DJSUtil.log('Pushing a subscript of the current execution: ');
             DJSUtil.inspect(element);
@@ -3563,10 +3533,8 @@ exports.DomUtils = DomUtils;
                 );
 
 
-            subscriptStack.push({
-                type: "external",
-                element: element
-            });
+            subscriptStack.push(element);
+
             self.pause();
                     
 
