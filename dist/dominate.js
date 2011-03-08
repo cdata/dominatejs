@@ -881,8 +881,8 @@ exports.DomUtils = DomUtils;
 
             try {
 
-                //console.error('[ DJS ] ' + out);
-                DJSUtil.log('[ DJS ] ' + out);
+                console.error('[ DJS ] ' + out);
+                //DJSUtil.log('[ DJS ] ' + out);
             } catch(e) {
 
                 DJSUtil.log('[ DJS ] ' + out);
@@ -1017,12 +1017,17 @@ exports.DomUtils = DomUtils;
         var self = this;
 
         DJSUtil.log("[attr] " + attribute + ":" + value);
-        if(self.setAttribute) {
+        try {
 
-            self.setAttribute(attribute, value);
-        } else {
-            
-            self.attributes[attribute] = value;
+            if(self.setAttribute) {
+
+                self.setAttribute(attribute, value);
+            } else {
+                
+                self.attributes[attribute] = value;
+            }
+        } catch(e) {
+            DJSUtil.log(e);
         }
     };
 
@@ -3272,7 +3277,7 @@ exports.DomUtils = DomUtils;
                         return;
                     }
                     
-                    //slaveDocument.flush();
+                    slaveDocument.flush();
 
                     detachHandlers();
 
@@ -3298,7 +3303,7 @@ exports.DomUtils = DomUtils;
                 try {
 
                     DJSUtil.globalEval(script.text);
-                    //slaveDocument.flush();
+                    slaveDocument.flush();
                 } catch(e) {
                     
                     DJSUtil.error(e + ' while attempting to execute this inline script: ');
