@@ -2693,9 +2693,17 @@ exports.DomUtils = DomUtils;
 
                             if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
 
-                                var inlineText = slaveScripts.handleInlineScriptText(
-                                    cursor.parent, node.nodeValue);
-                                cursor.parent.text = inlineText;
+                                var script = cursor.parent,
+                                    inlineText = slaveScripts.handleInlineScriptText(
+                                        script, node.nodeValue);
+
+                                if(!DJSUtil.navigator.IE && !script.src) {
+
+                                    script.type = "text/noexecute";
+                                    DJSUtil.globalEval(inlineText);
+                                }
+
+                                script.text = inlineText;
 
                             } else {
 
