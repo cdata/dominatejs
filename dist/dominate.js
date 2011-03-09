@@ -127,6 +127,11 @@ function Parser (handler, options) {
 		this._handler.done();
 	}
 
+	//Send DOM state to handlers without terminating parsing
+	Parser.prototype.peek = function Parser$peek () {
+		this._handler.peek();
+	}
+
 	//Resets the parser to a blank state, ready to parse a new HTML document
 	Parser.prototype.reset = function Parser$reset () {
 		this._buffer = "";
@@ -615,6 +620,9 @@ function DefaultHandler (callback, options) {
 		this._done = true;
 		this.handleCallback(null);
 	}
+	DefaultHandler.prototype.peek = function DefaultHandler$peek () {
+		this.handleCallback(null);
+	}
 	DefaultHandler.prototype.writeTag = function DefaultHandler$writeTag (element) {
 		this.handleElement(element);
 	} 
@@ -1007,12 +1015,17 @@ exports.DomUtils = DomUtils;
         
         var self = this;
 
-        if(self.setAttribute) {
+        try {
 
-            self.setAttribute(attribute, value);
-        } else {
-            
-            self.attributes[attribute] = value;
+            if(self.setAttribute) {
+
+                self.setAttribute(attribute, value);
+            } else {
+                
+                self.attributes[attribute] = value;
+            }
+        } catch(e) {
+            DJSUtil.log(e);
         }
     };
 
@@ -1636,7 +1649,11 @@ exports.DomUtils = DomUtils;
             contentCategories: {
                 'flow': 1
             },
-            contentModel: 'empty',
+            // NOTE: All browsers consistently defy the HTML spec here:
+            // browsers treat UL as a valid parent of flow content
+            // when the spec says it can only have LI children
+            //contentModel: 'empty',
+            contentModel: 'flow',
             inclusive: {
                 'li': 1
             }
@@ -2348,6 +2365,131 @@ exports.DomUtils = DomUtils;
 
     };
 
+    // Return the streamCursor for the current document, 
+    // or the most immediate non-Closed parent
+    // in the event that the streamCursor is closed.
+    DJSParserSemantics.getEffectiveStreamCursor = function(rawParent) {
+
+        // Search begins at the first defined insertion point:
+        // 1 parent (for recursive group insertion)
+        // 2 streamCursor.executingScript.parentNode
+        // (if script parent was not know)
+        // 3 document.body (if script did not attach
+        // successfully)
+        var self = this,
+            rawCursor = {
+
+            parent: null,
+            sibling: null
+        };
+
+        if (rawParent) {
+
+            rawCursor.parent = rawParent;
+
+        } else if (self.streamCursor) {
+
+            rawCursor.parent = self.streamCursor.parentNode;
+
+            rawCursor.sibling = self.streamCursor;
+
+        } else {
+
+            rawCursor.parent = document.body;
+
+        }
+
+        return (function getFirstNonClosedParent(cursor) {
+
+            var finalCursor;
+
+            if (!cursor.parent.closed) {
+
+                // Current cursor is fine
+                finalCursor = cursor;
+
+            } else if (cursor.parent.parentNode) {
+
+                // Climb up the tree
+                finalCursor = getFirstNonClosedParent({
+
+                    parent: cursor.parent.parentNode,
+
+                    sibling: cursor.parent
+                });
+
+            } else {
+                
+                // Fallback: use document.body if
+                // everything is closed
+                finalCursor = {
+
+                    parent: document.body,
+
+                    sibling: null
+                };
+            }
+
+            return finalCursor;
+
+        })(rawCursor);
+    };
+
+
+    // Find the ancestor of 'cursor' for which 'node' is a 
+    // valid child, i.e. <div> cannot be a child of <p>.  
+    // Search begins with 'cursor'.
+    //
+    // Closes all invalid nodes encountered during the
+    // search.
+    DJSParserSemantics.popTagStackUntilValid = function(node, cursor) {
+
+        var parent = cursor.parent;
+
+        if (DJSParserSemantics.isValidParent(node, parent)) {
+
+            return cursor;
+
+        } else {
+
+            parent.closed = true;
+
+            if (parent.parentNode) {
+
+                return DJSParserSemantics.popTagStackUntilValid(node, {
+                    parent: parent.parentNode,
+                    sibling: parent
+                });
+
+            } else {
+
+                return document.body;
+
+            }
+        }
+    };
+    
+    DJSParserSemantics.insertAfter = function(node, target) {
+
+        if (target.nextSibling) {
+
+            target.parentNode.insertBefore(node, target.nextSibling);
+        } else {
+
+            target.parentNode.appendChild(node);
+        }
+    };
+
+    DJSParserSemantics.decodeEntities = function(text) {
+
+        var span = document.createElement('span')
+
+        span.innerHTML = text;
+
+        return span.textContent;
+    };
+
+
 
     DJSParserSemantics.mixins = {
 
@@ -2417,6 +2559,10 @@ exports.DomUtils = DomUtils;
                                             DJSUtil.setAttribute.call(node, key, value);
                                             break;
                                     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> experimental
                                 }
                             }
                         );
@@ -2427,11 +2573,22 @@ exports.DomUtils = DomUtils;
                 
                 case 'text':
                     
-                    return document.createTextNode(abstractElement.data);
+                    return document.createTextNode(
+                        DJSParserSemantics.decodeEntities(abstractElement.data));
 
                 case 'comment':
                     
-                    return document.createComment(abstractElement.data);
+                    var comment;
+
+                    try {
+
+                        comment = document.createComment(abstractElement.data);
+                    } catch(e) {
+
+                        comment = document.createComment("error: malformed comment");
+                    }
+                         
+                    return comment;
 
                 case 'script':
                     
@@ -2474,7 +2631,7 @@ exports.DomUtils = DomUtils;
  * can "bubble" up the dom until a vaild structure is found.  Bubble events
  * will permanently adjust the insertion cursor until a new script.
  */
-        insert: function(abstractDOM, rawParent) {
+        insert: function(abstractDOM, rawParent, depth) {
              
             // Implementation notes:
             //
@@ -2494,124 +2651,120 @@ exports.DomUtils = DomUtils;
             //
             // Closedness is a property of HTML Elements which must persist
             // after this function completes.
+            //
+            // Finally, the abstractDOM may contain Seen Nodes, marked
+            //  by .seen == true.  These nodes should not be processed, but 
+            //  they may have new children
             var self = this,
-                document = self.target;
+                document = self.target,
+                depth = depth || 0;
 
             DJSUtil.forEach(
                 abstractDOM,
-                function(data) {
+                function(data, i) {
 
-                    // Return the streamCursor for the current document, 
-                    // or the most immediate non-Closed parent
-                    // in the event that the streamCursor is closed.
-                    var getEffectiveStreamCursor = function() {
-
-                        // Search begins at the first defined insertion point:
-                        // 1 parent (for recursive group insertion)
-                        // 2 streamCursor.executingScript.parentNode
-                        // (if script parent was not know)
-                        // 3 document.body (if script did not attach
-                        // successfully)
-                        var rawCursor = {
-
-                            parent: null,
-                            sibling: null
-                        };
-
-                        if (rawParent) {
-
-                            rawCursor.parent = rawParent;
-
-                        } else if (self.streamCursor.executingScript) {
-
-                            rawCursor.parent = self.streamCursor.executingScript.parentNode;
-
-                            rawCursor.sibling = self.streamCursor.executingScript;
-
-                        } else {
-
-                            rawCursor.parent = document.body;
-
-                        }
-
-                        return (function getFirstNonClosedParent(cursor) {
-
-                            var finalCursor;
-
-                            if (!cursor.parent.closed) {
-
-                                // Current cursor is fine
-                                finalCursor = cursor;
-
-                            } else if (cursor.parent.parentNode) {
-
-                                // Climb up the tree
-                                finalCursor = getFirstNonClosedParent({
-
-                                    parent: cursor.parent.parentNode,
-
-                                    sibling: cursor.parent
-                                });
-
-                            } else {
-                                
-                                // Fallback: use document.body if
-                                // everything is closed
-                                finalCursor = {
-
-                                    parent: document.body,
-
-                                    sibling: null
-                                };
-                            }
-
-                            return finalCursor;
-
-                        })(rawCursor);
-                    },
-
-                    // Find the ancestor of 'cursor' for which 'node' is a 
-                    // valid child, i.e. <div> cannot be a child of <p>.  
-                    // Search begins with 'cursor'.
+                    // Each node in the abstractDOM tree falls into 3 classes:
                     //
-                    // Closes all invalid nodes encountered during the
-                    // search.
-                        findValidAncestorAndCloseNodes = function(node, cursor) {
+                    // 1 unseen, unclosed node with unseen children
+                    //   > element reference is fresh from insertion
+                    //   > insertion cursor will be this element
+                    //
+                    // 2 seen, unclosed node with unseen children
+                    //   > look up element reference
+                    //     > A: maintain a DOM tree -> element mapping
+                    //       (e.g. /0/2/0 -> HTMLDivElement)
+                    //     > B: compute element reference like this:
+                    //       0 take note of tree position (/0/2/0)
+                    //       1 begin at the effective insertion cursor (based on the script node position)
+                    //       2 walk down the DOM tree and document tree to /0/2/0, ignoring closed nodes
+                    //       3 element reference found
+                    //   > insertion cursor will be this element
+                    //
+                    // 3 closed node with unseen children
+                    //   > insertion cursor will be parent element
+                    //
 
-                        var parent = cursor.parent;
+                    if (data.seen) {
 
-                        if (DJSParserSemantics.isValidParent(node, parent)) {
+                        if (data.children) {
 
-                            return cursor;
+                            //var liveNode = self.nodeCache[treePath.join('-')];
+                            var liveNode = data.liveNode;
 
-                        } else {
+                            self.insert(data.children, liveNode, depth+1);
+                        }
+                    } else {
 
-                            parent.closed = true;
+                        var cursor = DJSParserSemantics.getEffectiveStreamCursor.call(self, rawParent),
+                            node = self.convertAbstractElement(data),
+                            name = node.nodeName.toLowerCase();
 
-                            if (parent.parentNode) {
+                        data.seen = true;
+                        DJSUtil.log('created new node:');
+                        DJSUtil.inspect(node);
 
-                                return findValidAncestorAndCloseNodes(node, {
-                                    parent: parent.parentNode,
-                                    sibling: parent
-                                });
+                        
+                        // Cursor will be either
+                        // > the parent node in the the insertion group
+                        // > the parent node of document.write's callee script node
+                        // > the nearest non-closed parent node of one of the above
+                        try {
+
+                            if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
+
+                                var script = cursor.parent,
+                                    inlineText = slaveScripts.handleInlineScriptText(
+                                        script, node.nodeValue);
+
+                                if(!DJSUtil.navigator.IE && !script.src) {
+
+                                    script.type = "text/noexecute";
+                                    DJSUtil.globalEval(inlineText);
+                                }
+
+                                script.text = inlineText;
 
                             } else {
 
-                                return document.body;
+                                var parent, sibling;
 
+                                cursor = DJSParserSemantics.popTagStackUntilValid.apply(
+                                    this, [node, cursor]);
+
+                                parent = cursor.parent, sibling = cursor.sibling;
+
+                                if (sibling) {
+
+                                    DJSParserSemantics.insertAfter(node, sibling);
+
+                                } else {
+
+                                    parent.appendChild(node);
+                                }
+
+                                // StreamCursor points to the newest top-level node
+                                if (depth == 0) {
+
+                                    self.streamCursor = node;
+                                }
                             }
+
+                            // store node in nodecache for later passes
+                            // when this node will be already "seen"
+                            //self.nodeCache[treePath.join('-')] = node;
+                            data.liveNode = node;
+
+                            if (data.children) {
+
+                                self.insert(data.children, node, depth+1);
+                            }
+
+                        } catch(e) {
+
+                            DJSUtil.log('Insert failed');
+                            DJSUtil.error(e);
                         }
-                    },
-                    
-                        insertAfter = function(node, target) {
-
-                        if (target.nextSibling) {
-
-                            target.parentNode.insertBefore(node, target.nextSibling);
-                        } else {
-
-                            target.parentNode.appendChild(node);
-                        }
+<<<<<<< HEAD
                     };
 
                     var cursor = getEffectiveStreamCursor(),
@@ -2646,28 +2799,65 @@ exports.DomUtils = DomUtils;
                             parent = cursor.parent, sibling = cursor.sibling;
 
                             if (sibling) {
-
-                                insertAfter(node, sibling);
-
-                            } else {
-
-                                parent.appendChild(node);
-                            }
-                        }
-
-                        if (data.children) {
-
-                            self.insert(data.children, node);
-                        }
-
-                    } catch(e) {
-
-                        DJSUtil.log('Insert failed');
-                        DJSUtil.error(e);
+=======
                     }
                 }
             );
+        }, 
+>>>>>>> experimental
+
+/*
+ * DJSParserSemantics.mixins.afterInsert
+ * 
+ * React to a parser callback by manipulating
+ * flags within the internal HTMLParser DOM tree
+ */
+        afterInsert: function(error, dom) {
+
+            // recursively mark all DOM nodes "seen"
+            var markSeen = function markSeen(nodelist) {
+                DJSUtil.forEach(nodelist, function(node) {
+                    node.seen = true;
+                    node.children && markSeen(node.children);
+                });
+            },
+            // prune nodes which will never have new children
+                pruneDOM = function pruneDOM(nodeList) {
+                    // TODO: perfopt - prune nodes where 
+                    // next sibling is seen
+            };
+            // TODO we don't need this anymore
+            markSeen(this.dom);
+        },
+
+/*
+ * DJSParserSemantics.mixins.withParserDocwrite
+ * 
+ * Parse HTML chunk,  peek at the DOM and amend
+ * the live DOM with new nodes. Parsing must pause
+ * as soon as </script.*?> appears, so we force this
+ * by breaking the markup into chunks.
+ */
+        withParserDocwrite: function(parser, out) {
+
+            var chunks = out.split(/<\/script[^>]*>/);
+
+            DJSUtil.forEach(chunks, function(chunk, index){
+
+                if (index < (chunks.length - 1)) {
+
+                    chunk += "</script>";
+                } else if (chunk == "") {
+
+                    return;
+                }
+
+                DJSUtil.log('Parsing document.write content: ' + chunk);
+                parser.parseChunk(chunk);
+                parser.peek();
+            });
         }
+
     };
 
 /*
@@ -2681,7 +2871,6 @@ exports.DomUtils = DomUtils;
         var self = this;
 
         DJSDominatrix.call(self, document);
-        self.subscriptQueue = [];
         
         if(html) {
             self.hasWriteBuffer = false;
@@ -2735,12 +2924,13 @@ exports.DomUtils = DomUtils;
                     function(type) {
 
                         var args = arguments,
+                            caller = arguments.callee.caller || {},
                             nativeMethods = self.nativeMethods,
                             element = DJSUtil.feature.createElementCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
 
                         if(type.indexOf('script') != -1) {
 
-                            self.queueSubscript(element);
+                            slaveScripts.pushSubscript(element, caller);
                         }
 
                         return element;
@@ -2765,97 +2955,17 @@ exports.DomUtils = DomUtils;
             },
 
 /*
- * DJSDocument.queueSubscript
- *
- * TODO: Document me
- */
-            queueSubscript: function(element) {
-
-                DJSUtil.log('Queueing a subscript of the current execution: ');
-                DJSUtil.inspect(element);
-                
-                var self = this,
-                    subscriptQueue = self.subscriptQueue,
-                    parentStreamCursor = self.streamCursor,
-                    popQueue = function() {
-                        
-                        subscriptQueue.pop();
-
-                        if(subscriptQueue.length == 0) {
-
-                            slaveScripts.resume();
-                        }
-                    },
-                    removeHandlers = function() {
-
-                        DJSUtil.removeEventListener.call(element, 'load', loadHandler, true);
-                        DJSUtil.removeEventListener.call(element, 'readystatechange', loadHandler, true);
-                        DJSUtil.removeEventListener.call(element, 'error', errorHandler, true);
-                    },
-                    loadHandler = function() {
-
-                        var readyState = element.readyState;
-
-                        clearTimeout(timeout);
-
-                        if(readyState && readyState != 'complete' && readyState != 'loaded') {
-
-                            return;
-                        }
-                       
-                        self.flush();
-                        self.streamCursor = parentStreamCursor;
-                        removeHandlers();
-                        popQueue();
-                    },
-                    errorHandler = function() {
-
-                        self.streamCursor = parentStreamCursor;
-                        removeHandlers();
-                        popQueue();
-                    },
-                    // TODO: Mega hack to make sure queued subscripts don't pause
-                    // us indefinitely. We MUST to find a better way around this.
-                    // NOTE: We've discussed an alternative. In theory you can
-                    // dominate tree insertion methods and wait for the script
-                    // to actually be inserted before you let it block the
-                    // execution loop.
-                    timeout = setTimeout(
-                        function() {
-                            
-                            if(!element.parentNode) {
-
-                                DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
-                                errorHandler();
-                            }
-                        }, 
-                        30
-                    );
-
-
-                slaveScripts.pause();
-                        
-                self.streamCursor = { 
-                    executingScript: element || document.body.firstChild
-                };
-
-                if(DJSUtil.navigator.IE) {
-
-                    DJSUtil.addEventListener.call(element, 'readystatechange', loadHandler, true);
-                } else {
-
-                    DJSUtil.addEventListener.call(element, 'load', loadHandler, true);
-                }
-
-                DJSUtil.addEventListener.call(element, 'error', errorHandler, true);
-
-            },
-/*
  * DJSDocument.write
  *
- * This method captures write output, presumably on a script-by-script basis,
- * fills a buffer with it, and then parses / inserts it when the script is done
- * executing.
+ * Let scripts execute document.write post-onload without clobbering the page
+ *
+ * This method inserts nodes into the DOM given a fragment of HTML. Ideally,
+ * a call to DJSDocument.write(html) post-onload and document.write(html)
+ * pre-onload would yeild the same DOM structure.
+ * 
+ * General approach: use an HTML parser and HTML semantics engine to simulate
+ * the browser's native behavior.
+ *
  */
 
             write: function(out) {
@@ -2865,12 +2975,13 @@ exports.DomUtils = DomUtils;
 
                 DJSUtil.log('Buffering document.write content: ' + out);
                 
-                if(parser) {
+                if(parser && DJSParserSemantics) {
 
                     self.hasWriteBuffer = true;
-                    parser.parseChunk(out);
+                    DJSParserSemantics.mixins.withParserDocwrite.apply(self, [parser, out]);
                 } else {
                     
+                    DJSUtil.log('Ignoring document.write content: ' + out);
                     // TODO: Fallback to the span / innerHtml option?
                 }
             },
@@ -2978,6 +3089,14 @@ exports.DomUtils = DomUtils;
                     window = self.target,
                     nativeMethods = self.nativeMethods,
                     handlers = self.handlers;
+
+                window.DJS = window.DJS || {};
+                window.DJS.inlineScripts = [];
+                window.DJS.inlineScriptDone = function inlineScriptDone(code) {
+                    var done = window.DJS.inlineScripts[code];
+                    delete window.DJS.inlineScripts[code];
+                    slaveScripts.fireSubscriptDone(done);
+                };
 
                 DJSDominatrix.prototype.dominate.call(self);
                 
@@ -3166,9 +3285,7 @@ exports.DomUtils = DomUtils;
             var self = this,
                 script = self.originalScript;
 
-            slaveDocument.streamCursor = {
-                executingScript: script || document.body.firstChild
-            };
+            slaveDocument.streamCursor = script || document.body.firstChild;
 			
             if(self.external) {
 
@@ -3258,11 +3375,27 @@ exports.DomUtils = DomUtils;
 
         self.slaves = [];
         self.captives = [];
+        self.subscriptStack = [];
 
         self.urlCache = {};
         self.executing = false;
         self.currentExecution = null;
         self.paused = self.breakExecution = false;
+
+        // After every subscript finishes, 
+        self.subscriptDoneHandlers = [];
+        self.onSubscriptDone(function popScriptStack(done) {
+                    
+            self.subscriptStack.pop();
+
+            DJSUtil.log("Script completed: ");
+            DJSUtil.inspect(done);
+
+            if(self.subscriptStack.length == 0) {
+
+                self.resume();
+            }
+        });
     };
 
     DJSScriptManager.prototype = {
@@ -3332,6 +3465,22 @@ exports.DomUtils = DomUtils;
             search();
         },
 
+ /*
+  * DJSScriptManager.handleInlineScriptText
+  *
+  * Inject exection flow mamangement snippet
+  */
+        handleInlineScriptText: function(scriptElement, scriptText) {
+
+            var code = window.DJS.inlineScripts.push(scriptElement) - 1;
+                snippet = "\n(function(){window.DJS.inlineScriptDone("+code+")})();";
+
+            DJSUtil.log("Pushing script to inline script stack:");
+            DJSUtil.inspect(scriptText + snippet);
+
+            return scriptText + snippet;
+        },
+ 
 /*
  * DJSScriptManager.execute
  *
@@ -3458,6 +3607,123 @@ exports.DomUtils = DomUtils;
                 self.paused = false;
                 self.execute();
             }
+        },
+/*
+ * DJSScriptManager.pushSubscript
+ *
+ * Push a new script onto our execution stack.  Top-level
+ *  script execution cannot resume until this stack
+ *  reaches 0
+ *
+ * For online scripts, track onload by injecting a callback
+ */
+        pushSubscript: function(element, chaperone) {
+
+            var self = this,
+                subscriptStack = self.subscriptStack,
+                stackLevel,
+                parentStreamCursor = slaveDocument.streamCursor,
+                popStack = function() {
+                    
+                    subscriptStack.pop();
+
+                    if(subscriptStack.length == 0) {
+
+                        self.resume();
+                    }
+                },
+                loadEventHandler = function() {
+
+                    var readyState = element.readyState;
+
+                    clearTimeout(timeout);
+
+                    if(readyState && readyState != 'complete' && readyState != 'loaded') {
+
+                        return;
+                    }
+                   
+                    //self.flush();
+                    slaveDocument.streamCursor = parentStreamCursor;
+                    removeHandlers();
+                    // TODO: this part should become the global script-complete handler:
+                    //popStack();
+                    self.fireSubscriptDone(element);
+                },
+                removeHandlers = function() {
+
+                    DJSUtil.removeEventListener.call(element, 'load', loadEventHandler, true);
+                    DJSUtil.removeEventListener.call(element, 'readystatechange', loadEventHandler, true);
+                    DJSUtil.removeEventListener.call(element, 'error', errorHandler, true);
+                },
+                errorHandler = function() {
+
+                    slaveDocument.streamCursor = parentStreamCursor;
+                    removeHandlers();
+                    self.fireSubscriptDone(element);
+                    //popStack();
+                },
+                // TODO: Mega hack to make sure pushed subscripts don't pause
+                // us indefinitely. We MUST to find a better way around this.
+                // (this is in case a script node is created but never added to the live DOM)
+                timeout = setTimeout(
+                    function() {
+                        
+                        if(!element.parentNode) {
+
+                            DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
+                            DJSUtil.inspect(element);
+                            DJSUtil.inspect(chaperone);
+                            errorHandler();
+                        }
+                    }, 
+                    30
+                );
+
+
+            stackLevel = subscriptStack.push(element);
+            DJSUtil.log('Pushing a subscript of the current execution (level '+stackLevel+'): ');
+            DJSUtil.inspect(element);
+
+            self.pause();
+                    
+
+            // external only
+            // inline scripts can't modify the streamCursor as external
+            // scripts can (or can they?)
+            slaveDocument.streamCursor = element || document.body.firstChild;
+
+            // external only - use text hack here for internal
+            if(DJSUtil.navigator.IE) {
+
+                DJSUtil.addEventListener.call(element, 'readystatechange', loadEventHandler, true);
+            } else {
+
+                DJSUtil.addEventListener.call(element, 'load', loadEventHandler, true);
+            }
+
+            DJSUtil.addEventListener.call(element, 'error', errorHandler, true);
+
+        },
+
+        fireSubscriptDone: function(element) {
+            var self = this;
+
+            DJSUtil.forEach(self.subscriptDoneHandlers, function(handler) {
+
+                handler.call(self, element);
+            });
+        },
+
+/*
+ * DJSScriptManager.onSubscriptDone
+ *
+ * Attach a callback which will run whenever a subscript finishes
+ */
+        onSubscriptDone: function(callback) {
+            var self = this;
+
+            self.subscriptDoneHandlers.push(callback);
         }
     };
 
@@ -3483,6 +3749,7 @@ exports.DomUtils = DomUtils;
 
                 function() {
 
+                    slaveDocument.flush();
                     DJSUtil.log('Finished executing. Simulating load, ready and readystatechange events!');
 
                     slaveDocument.ready();

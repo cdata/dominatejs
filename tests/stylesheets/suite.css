@@ -106,6 +106,20 @@ h3 {
     height: 100%;/* Epic IE7 hack :( */   
 }
 
+#TestContainer .test-link {
+
+    display: none;
+}
+
+#TestContainer .test-link:hover {
+    margin-left: 0;
+}
+
+#TestContainer.active .test-link {
+
+    display: inline;
+}
+
 * html #TestContainer {
     
     height: auto;
