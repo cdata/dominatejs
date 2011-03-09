@@ -2480,6 +2480,15 @@ exports.DomUtils = DomUtils;
         }
     };
 
+    DJSParserSemantics.decodeEntities = function(text) {
+
+        var span = document.createElement('span')
+
+        span.innerHTML = text;
+
+        return span.textContent;
+    };
+
 
 
     DJSParserSemantics.mixins = {
@@ -2563,7 +2572,8 @@ exports.DomUtils = DomUtils;
                 
                 case 'text':
                     
-                    return document.createTextNode(abstractElement.data);
+                    return document.createTextNode(
+                        DJSParserSemantics.decodeEntities(abstractElement.data));
 
                 case 'comment':
                     
