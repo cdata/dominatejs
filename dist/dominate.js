@@ -2559,10 +2559,6 @@ exports.DomUtils = DomUtils;
                                             DJSUtil.setAttribute.call(node, key, value);
                                             break;
                                     }
-<<<<<<< HEAD
-=======
-
->>>>>>> experimental
                                 }
                             }
                         );
@@ -2764,47 +2760,10 @@ exports.DomUtils = DomUtils;
                             DJSUtil.log('Insert failed');
                             DJSUtil.error(e);
                         }
-<<<<<<< HEAD
-                    };
-
-                    var cursor = getEffectiveStreamCursor(),
-                        node = self.convertAbstractElement(data),
-                        name = node.nodeName.toLowerCase();
-
-                    
-                    // Cursor will be either
-                    // > the parent node in the the insertion group
-                    // > the parent node of document.write's callee script node
-                    // > the nearest non-closed parent node of one of the above
-                    try {
-
-                        if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
-
-                            var script = cursor.parent;
-
-                            if(!DJSUtil.navigator.IE && !script.src) {
-
-                                script.type = "text/noexecute";
-                                DJSUtil.globalEval(node.nodeValue);
-                            }
-
-                            script.text = node.nodeValue;
-
-                        } else {
-
-                            var parent, sibling;
-
-                            cursor = findValidAncestorAndCloseNodes(node, cursor);
-
-                            parent = cursor.parent, sibling = cursor.sibling;
-
-                            if (sibling) {
-=======
                     }
                 }
             );
         }, 
->>>>>>> experimental
 
 /*
  * DJSParserSemantics.mixins.afterInsert
