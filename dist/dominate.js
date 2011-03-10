@@ -1178,16 +1178,62 @@ exports.DomUtils = DomUtils;
                         }
                     }
                 },
+
+
+
+
+                /*
+                 * removeEventWrapper
+                 * 
+                 * Simulates native removeEventListener / detachEvent
+                 *
+                 * Given eventType, function, captures?,
+                 * 
+                 * If the user previously called
+                 *
+                 *   addEventWrapper(type, function, captures?) 
+                 *   (as addEventListener(...) or attachEvent(...) )
+                 *
+                 * and hasn't yet removed the event handler, calling
+                 *
+                 *   removeEventWrapper(type, function, captures?)
+                 *   (as removeEventListener(...) or detachEvent(...) )
+                 *
+                 * will remove that listener from the list.
+                 *
+                 * Note that each (type, function, captures?) triple defines
+                 * a unique "handler".  Therefore, 
+                 *
+                 *   addEventListener("load", myhandler, true)
+                 *   removeEventListener("load", myhandler, false)
+                 *
+                 * will NOT remove the handler.
+                 */
                 removeEventWrapper = function(event) {
+
+                    // Notes: check if the set (event, handler, useCapture)
+                    // or (event, handler) given by 'arguments' exists in our
+                    // deferredEventHandlers set
 
                     var args = arguments,
                         eventType = event.indexOf('on') == 0 ? event.substring(2) : event,
+                        handlerFound = false,
                         handlerQueue = deferredEventHandlers[eventType];
 
+                    // For each handler registered to eventType,
+                    // find the first handler that matches all arguments
+                    // passed to removeEventWrapper.  Remove that handler.
                     DJSUtil.forEach(
 
                         handlerQueue,
                         function(queuedArgs, queueIndex) {
+
+                            var argsLength = queuedArgs.length;
+
+                            // don't bother if args length doesn't match
+                            if (argsLength != args.length) {
+                                return false;
+                            }
 
                             DJSUtil.forEach(
                                 queuedArgs,
@@ -1198,12 +1244,16 @@ exports.DomUtils = DomUtils;
                                         return false;
                                     }
 
-                                    if(index == 2) {
+                                    // if all args have matched, this is it
+                                    if(argIndex == argsLength-1) {
 
                                         handlerQueue.splice(queueIndex, 1);
+                                        handlerFound = true;
                                     }
                                 }
                             );
+
+                            return !handlerFound;
                         }
                     );
                 };
@@ -3050,7 +3100,48 @@ exports.DomUtils = DomUtils;
                 var self = this,
                     window = self.target,
                     nativeMethods = self.nativeMethods,
-                    handlers = self.handlers;
+                    handlers = self.handlers,
+                    options = {},
+                    onloadscripts = [];
+
+                // TODO process commands in window.DJS
+                // first, process "options" commands
+                // then, process "defer" commands
+                // finally, replace window.DJS with a hash
+                // replace window.DJS.push() with a function
+                // that runs the target right away
+
+                if (window.DJS && window.DJS.length) {
+
+                    var withValidArgs = function(args, cb) {
+
+                        if (args[0] instanceof Function ||
+                           (args[0] instanceof Array
+                            && args[0].length)) {
+
+                            return cb();
+                        }
+                    };
+
+                    DJSUtil.forEach(window.DJS, function(pushed) {
+
+                        withValidArgs(arguments, function() {
+
+                            if (pushed instanceof Function ||
+                                 pushed[0] == "defer") {
+
+                                //TODO add script to a list which will be
+                                // run at the end of the top-level execution flow
+                            } else if (pushed[0] == "option") {
+                                // format is ["option", keyname, value]
+                                var key = pushed[1],
+                                    value = pushed[2];
+
+                                options[key] = value;
+                            }
+                        });
+                    });
+                }
 
                 window.DJS = window.DJS || {};
                 window.DJS.inlineScripts = [];
