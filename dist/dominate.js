@@ -3141,6 +3141,12 @@ exports.DomUtils = DomUtils;
                         });
                     });
 
+                    /* Note:
+                     * We need to mutate window.__CF.DJS
+                     * or else late calls to window.__CF.DJS.push()
+                     * won't do anything.
+                     */
+                    window.__CF = window.__CF || {};
                     DJS = window.__CF.DJS = {
 
                         inlineScripts: [],
@@ -3534,7 +3540,7 @@ exports.DomUtils = DomUtils;
   */
         handleInlineScriptText: function(scriptElement, scriptText) {
 
-            var code = window.DJS.inlineScripts.push(scriptElement) - 1;
+            var code = window.__CF.DJS.inlineScripts.push(scriptElement) - 1;
                 snippet = "\n(function(){window.__CF.DJS.inlineScriptDone("+code+")})();";
 
             DJSUtil.log("Pushing script to inline script stack:");
@@ -3832,7 +3838,7 @@ exports.DomUtils = DomUtils;
 })(
     window,
     document,
-    typeof __CF == "undefined" ? {} : (__CF.DJS || []),
+    typeof __CF == "undefined" ? [] : (__CF.DJS || []),
     typeof exports != "undefined" ? exports : false,
     typeof DJSParserSemantics != "undefined" ? DJSParserSemantics : false
 );
