@@ -836,7 +836,7 @@ exports.DomUtils = DomUtils;
 
 })();
 
-(function(window, document, options, html) {
+(function(window, document, DJS, html) {
 
 /*
  * DJSUtil
@@ -860,7 +860,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.log = function(out) {
 
-        if(options.verbose) {
+        if(DJS.options.verbose) {
 
             try {
 
@@ -877,7 +877,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.error = function(out) {
 
-        if(options.verbose) {
+        if(DJS.options.verbose) {
 
             try {
 
@@ -897,7 +897,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.inspect = function(object) {
 
-        if(options.verbose) {
+        if(DJS.options.verbose) {
 
             try {
 
@@ -3101,17 +3101,14 @@ exports.DomUtils = DomUtils;
                     window = self.target,
                     nativeMethods = self.nativeMethods,
                     handlers = self.handlers,
-                    options = {},
-                    onloadscripts = [];
+                    options = {};
 
-                // TODO process commands in window.DJS
-                // first, process "options" commands
-                // then, process "defer" commands
-                // finally, replace window.DJS with a hash
-                // replace window.DJS.push() with a function
-                // that runs the target right away
-
-                if (window.DJS && window.DJS.length) {
+                /* First time dominate runs, DJS will be an array of
+                 * commands and onload listeners.
+                 * Process all commands and replace DJS with a hash.
+                 * DJS.push() remains.
+                 */
+                if (DJS instanceof Array) {
 
                     var withValidArgs = function(args, cb) {
 
@@ -3123,16 +3120,18 @@ exports.DomUtils = DomUtils;
                         }
                     };
 
-                    DJSUtil.forEach(window.DJS, function(pushed) {
+                    DJSUtil.forEach(DJS, function(pushed) {
 
                         withValidArgs(arguments, function() {
 
                             if (pushed instanceof Function ||
+
                                  pushed[0] == "defer") {
 
-                                //TODO add script to a list which will be
-                                // run at the end of the top-level execution flow
+                                self.whenLoaded(pushed[1]);
+
                             } else if (pushed[0] == "option") {
+
                                 // format is ["option", keyname, value]
                                 var key = pushed[1],
                                     value = pushed[2];
@@ -3141,14 +3140,24 @@ exports.DomUtils = DomUtils;
                             }
                         });
                     });
-                }
 
-                window.DJS = window.DJS || {};
-                window.DJS.inlineScripts = [];
-                window.DJS.inlineScriptDone = function inlineScriptDone(code) {
-                    var done = window.DJS.inlineScripts[code];
-                    delete window.DJS.inlineScripts[code];
-                    slaveScripts.fireSubscriptDone(done);
+                    DJS = window.__CF.DJS = {
+
+                        inlineScripts: [],
+
+                        inlineScriptDone: function(code) {
+
+                            var done = window.__CF.DJS.inlineScripts[code];
+                            delete window.__CF.DJS.inlineScripts[code];
+                            slaveScripts.fireSubscriptDone(done);
+                        },
+
+                        options: options,
+
+                        push: self.whenLoaded
+
+                    };
+
                 };
 
                 DJSDominatrix.prototype.dominate.call(self);
@@ -3526,7 +3535,7 @@ exports.DomUtils = DomUtils;
         handleInlineScriptText: function(scriptElement, scriptText) {
 
             var code = window.DJS.inlineScripts.push(scriptElement) - 1;
-                snippet = "\n(function(){window.DJS.inlineScriptDone("+code+")})();";
+                snippet = "\n(function(){window.__CF.DJS.inlineScriptDone("+code+")})();";
 
             DJSUtil.log("Pushing script to inline script stack:");
             DJSUtil.inspect(scriptText + snippet);
@@ -3785,9 +3794,9 @@ exports.DomUtils = DomUtils;
         slaveWindow = new DJSWindow(window),
         slaveScripts = new DJSScriptManager();
 
-    DJSUtil.log('Dominating the window and any appropriate scripts!');
 
     slaveWindow.dominate();
+    DJSUtil.log('Window dominated, moving on to all appropriate scripts!');
     slaveScripts.dominate();
 
     slaveWindow.whenLoaded(
@@ -3823,7 +3832,7 @@ exports.DomUtils = DomUtils;
 })(
     window,
     document,
-    typeof DJS != "undefined" ? DJS : {}, 
+    typeof __CF == "undefined" ? {} : (__CF.DJS || []),
     typeof exports != "undefined" ? exports : false,
     typeof DJSParserSemantics != "undefined" ? DJSParserSemantics : false
 );
