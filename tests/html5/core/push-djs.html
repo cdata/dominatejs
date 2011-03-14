@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
     <meta charset="UTF-8">
-    <title>DJS Basic External Write Test</title>
+    <title>DJS Core API Test</title>
     
 <script type="text/javascript">
     __CF = {DJS: [["option", "verbose", true]]};
@@ -12,11 +12,11 @@
     <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
     <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
 </head>
-<body>
+<body onload="__CF.DJS.push(function(){document.getElementById('s').innerHTML='Test OK';})">
     <div class="rightparent">
-        <p class="wrongparent">
-            <script type="text/djs" data-djssrc="/tests/javascripts/complex-docwrite-c.js"></script>
-        </p>
+        <p>Logging should be active in DJS version</p>
+        <script type="text/djs">document.write('<h1>I SHOULD BE GREEN AND BOLD</h1>');</script>
+        <p id="s"></p>
     </div>
 </body>
 </html>

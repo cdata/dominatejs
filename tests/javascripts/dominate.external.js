@@ -1,6 +1,6 @@
 (function(window) {
     
-    window.DJS = {verbose: true};
+    window.DJS = [{verbose: true}];
     var djsscript = document.createElement('script');
     djsscript.src = "/dist/dominate.js";
     djsscript.async = true;

@@ -836,14 +836,75 @@ exports.DomUtils = DomUtils;
 
 })();
 
-(function(window, document, options, html) {
+(function(window, document, DJS, html) {
 
 /*
  * DJSUtil
  *
  * Contains helpers and cross-browser wrappers to aide in other DJS functions
  */
-    var DJSUtil = window._ || {};
+    var DJSUtil = (function() {
+        
+        var utilBase = window._ || {};
+
+        if(DJS.length) {
+
+            var cache = DJS,
+                inlineHandlers = [],
+                options = {},
+                sortItem = function(item) {
+                    
+                    switch(typeof item) {
+
+                        case "function":
+
+                            inlineHandlers.push(item);
+                            
+                            break;
+                        case "object":
+                            
+                            for(var option in item) {
+
+                                if(item.hasOwnProperty(option)) {
+
+                                    options[option] = item[option];
+                                }
+                            }
+
+                            break;
+                        default:
+                            break;
+                    }
+                };
+
+            for(var i = 0; i < cache.length; i++) {
+
+                sortItem(cache[i]);
+            }
+
+            DJS = {
+                push: function(value) {
+
+                    sortItem(value);
+                }
+            };
+
+            utilBase.options = options;
+            utilBase.inlineHandlers = inlineHandlers;
+
+            if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
+                
+                window.__CF.DJS = DJS;
+            } 
+            
+            if(window.DJS) {
+
+                window.DJS = DJS;
+            }
+        }
+
+        return utilBase;
+    })();
 
 /*
  * DJSUtil.epoch
@@ -860,7 +921,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.log = function(out) {
 
-        if(options.verbose) {
+        if(DJSUtil.options.verbose) {
 
             try {
 
@@ -877,7 +938,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.error = function(out) {
 
-        if(options.verbose) {
+        if(DJSUtil.options.verbose) {
 
             try {
 
@@ -897,7 +958,7 @@ exports.DomUtils = DomUtils;
  */
     DJSUtil.inspect = function(object) {
 
-        if(options.verbose) {
+        if(DJSUtil.options.verbose) {
 
             try {
 
@@ -1126,7 +1187,7 @@ exports.DomUtils = DomUtils;
         self.deferredEventHandlers = {};
         self.capturedEvents = {};
         self.nativeMethods = {};
-
+        self.deferredOnEventHandlers = {};
     };
 
     DJSDominatrix.prototype = {
@@ -1179,36 +1240,31 @@ exports.DomUtils = DomUtils;
                     }
                 },
 
-
-
-
-                /*
-                 * removeEventWrapper
-                 * 
-                 * Simulates native removeEventListener / detachEvent
-                 *
-                 * Given eventType, function, captures?,
-                 * 
-                 * If the user previously called
-                 *
-                 *   addEventWrapper(type, function, captures?) 
-                 *   (as addEventListener(...) or attachEvent(...) )
-                 *
-                 * and hasn't yet removed the event handler, calling
-                 *
-                 *   removeEventWrapper(type, function, captures?)
-                 *   (as removeEventListener(...) or detachEvent(...) )
-                 *
-                 * will remove that listener from the list.
-                 *
-                 * Note that each (type, function, captures?) triple defines
-                 * a unique "handler".  Therefore, 
-                 *
-                 *   addEventListener("load", myhandler, true)
-                 *   removeEventListener("load", myhandler, false)
-                 *
-                 * will NOT remove the handler.
-                 */
+                // removeEventWrapper
+                //
+                // Simulates native removeEventListener / detachEvent
+                //
+                // Given eventType, function, captures?,
+                //
+                // If the user previously called
+                //
+                // addEventWrapper(type, function, captures?) 
+                // (as addEventListener(...) or attachEvent(...) )
+                //
+                // and hasn't yet removed the event handler, calling
+                //
+                // removeEventWrapper(type, function, captures?)
+                // (as removeEventListener(...) or detachEvent(...) )
+                //
+                // will remove that listener from the list.
+                //
+                // Note that each (type, function, captures?) triple defines
+                // a unique "handler".  Therefore, 
+                //
+                // addEventListener("load", myhandler, true)
+                // removeEventListener("load", myhandler, false)
+                //
+                // will NOT remove the handler.
                 removeEventWrapper = function(event) {
 
                     // Notes: check if the set (event, handler, useCapture)
@@ -1290,6 +1346,7 @@ exports.DomUtils = DomUtils;
             var self = this,
                 target = self.target,
                 deferredEventHandlers = self.deferredEventHandlers,
+                deferredOnEventHandlers = self.deferredOnEventHandlers,
                 capturedEvents = self.capturedEvents,
                 nativeMethods = self.nativeMethods,
                 addEventListener = nativeMethods.addEventListener || nativeMethods.attachEvent,
@@ -1298,6 +1355,27 @@ exports.DomUtils = DomUtils;
                     event.captureHandler = arguments.callee;
                     capturedEvents[eventType] = event;
                 };
+
+            if(DJSUtil.feature.defineSetterGetter) {
+
+                var onEventType = 'on' + eventType.toLowerCase();
+
+                target.__defineSetter__(
+                    onEventType,
+                    function(value) {
+
+                        deferredOnEventHandlers[onEventType] = value;
+                    }
+                );
+
+                target.__defineGetter__(
+                    onEventType,
+                    function() {
+
+                        return deferredOnEventHandlers[onEventType];
+                    }
+                );
+            }
 
             if(addEventListener) {
 
@@ -1330,6 +1408,7 @@ exports.DomUtils = DomUtils;
                 target = self.target,
                 capturedEvents = self.capturedEvents,
                 deferredEventHandlers = self.deferredEventHandlers,
+                deferredOnEventHandlers = self.deferredOnEventHandlers,
                 nativeMethods = self.nativeMethods,
                 removeEventListener = nativeMethods.removeEventListener || nativeMethods.detachEvent,
                 event = capturedEvents[eventType];
@@ -1384,14 +1463,22 @@ exports.DomUtils = DomUtils;
 
                 if(!event.propagationStopped) {
 
-                    var onHandler = target["on" + eventType.toLowerCase()];
+                    var onEventType = "on" + eventType.toLowerCase(),
+                        onHandler = target[onEventType];
 
                     if(onHandler) {
 
                         // TODO: Verify that the context should be window here
                         // it might be the element on which the property was
                         // set. This seems to vary between IE and others.
-                        onHandler.call(window, event);
+                        
+                        try {
+                            onHandler.call(target, event);
+                        } catch(e) {
+
+                            DJSUtil.error("WARNING: Attempt to execute deferred event handler " + onEventType + " failed!");
+                        }
+                        
                     }
                 }
 
@@ -3098,55 +3185,7 @@ exports.DomUtils = DomUtils;
                     window = self.target,
                     nativeMethods = self.nativeMethods,
                     handlers = self.handlers,
-                    options = {},
-                    onloadscripts = [];
-
-                // TODO process commands in window.DJS
-                // first, process "options" commands
-                // then, process "defer" commands
-                // finally, replace window.DJS with a hash
-                // replace window.DJS.push() with a function
-                // that runs the target right away
-
-                if (window.DJS && window.DJS.length) {
-
-                    var withValidArgs = function(args, cb) {
-
-                        if (args[0] instanceof Function ||
-                           (args[0] instanceof Array
-                            && args[0].length)) {
-
-                            return cb();
-                        }
-                    };
-
-                    DJSUtil.forEach(window.DJS, function(pushed) {
-
-                        withValidArgs(arguments, function() {
-
-                            if (pushed instanceof Function ||
-                                 pushed[0] == "defer") {
-
-                                //TODO add script to a list which will be
-                                // run at the end of the top-level execution flow
-                            } else if (pushed[0] == "option") {
-                                // format is ["option", keyname, value]
-                                var key = pushed[1],
-                                    value = pushed[2];
-
-                                options[key] = value;
-                            }
-                        });
-                    });
-                }
-
-                window.DJS = window.DJS || {};
-                window.DJS.inlineScripts = [];
-                window.DJS.inlineScriptDone = function inlineScriptDone(code) {
-                    var done = window.DJS.inlineScripts[code];
-                    delete window.DJS.inlineScripts[code];
-                    slaveScripts.fireSubscriptDone(done);
-                };
+                    options = {};
 
                 DJSDominatrix.prototype.dominate.call(self);
                 
@@ -3427,6 +3466,8 @@ exports.DomUtils = DomUtils;
         self.captives = [];
         self.subscriptStack = [];
 
+        self.inlineScriptCache = [];
+
         self.urlCache = {};
         self.executing = false;
         self.currentExecution = null;
@@ -3446,6 +3487,15 @@ exports.DomUtils = DomUtils;
                 self.resume();
             }
         });
+
+        window.DJS_inlineScriptDone = function(index) {
+
+            var done = self.inlineScriptCache[index];
+
+            delete self.inlineScriptCache[index];
+
+            self.fireSubscriptDone(index);
+        }
     };
 
     DJSScriptManager.prototype = {
@@ -3522,13 +3572,15 @@ exports.DomUtils = DomUtils;
   */
         handleInlineScriptText: function(scriptElement, scriptText) {
 
-            var code = window.DJS.inlineScripts.push(scriptElement) - 1;
-                snippet = "\n(function(){window.DJS.inlineScriptDone("+code+")})();";
+            var self = this,
+                inlineScriptCache = self.inlineScriptCache,
+                index = inlineScriptCache.push(scriptElement) - 1,
+                result = scriptText + "\n(function(){DJS_inlineScriptDone(" + index + ")})();";
 
             DJSUtil.log("Pushing script to inline script stack:");
-            DJSUtil.inspect(scriptText + snippet);
+            DJSUtil.inspect(result);
 
-            return scriptText + snippet;
+            return result;
         },
  
 /*
@@ -3619,6 +3671,30 @@ exports.DomUtils = DomUtils;
 
                     if(!self.executionFinished) {
                         
+                        // Execute remaining inline handlers if any..
+                        if(DJSUtil.inlineHandlers) {
+
+                            DJSUtil.forEach(
+                                DJSUtil.inlineHandlers,
+                                function(handler, index) {
+
+                                    handler.call(window);
+                                }
+                            );
+
+                            delete DJSUtil.inlineHandlers;
+                        }
+
+                        // Replace DJS.push so that future handlers are
+                        // executed immediately..
+                        DJS.push = function(item) {
+                            
+                            if(typeof item == "function") {
+
+                                item.call(window);
+                            }
+                        };
+
                         DJSUtil.log('Looks like we are done dominating!');
                         self.executionCallback();
                         self.executionFinished = true;
@@ -3782,9 +3858,9 @@ exports.DomUtils = DomUtils;
         slaveWindow = new DJSWindow(window),
         slaveScripts = new DJSScriptManager();
 
-    DJSUtil.log('Dominating the window and any appropriate scripts!');
-
     slaveWindow.dominate();
+
+    DJSUtil.log('Window dominated, moving on to all appropriate scripts!');
     slaveScripts.dominate();
 
     slaveWindow.whenLoaded(
@@ -3820,7 +3896,7 @@ exports.DomUtils = DomUtils;
 })(
     window,
     document,
-    typeof DJS != "undefined" ? DJS : {}, 
+    (typeof window.__CF == "undefined" ? ((typeof DJS == "object" && DJS.length) ? DJS : []) : window.__CF.DJS),
     typeof exports != "undefined" ? exports : false,
     typeof DJSParserSemantics != "undefined" ? DJSParserSemantics : false
 );
