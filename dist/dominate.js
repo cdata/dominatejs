@@ -3023,13 +3023,12 @@ exports.DomUtils = DomUtils;
                     function(type) {
 
                         var args = arguments,
-                            caller = arguments.callee.caller || {},
                             nativeMethods = self.nativeMethods,
                             element = DJSUtil.feature.createElementCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
 
                         if(type.indexOf('script') != -1) {
 
-                            slaveScripts.pushSubscript(element, caller);
+                            slaveScripts.pushSubscript(element);
                         }
 
                         return element;
@@ -3746,7 +3745,7 @@ exports.DomUtils = DomUtils;
  *
  * For online scripts, track onload by injecting a callback
  */
-        pushSubscript: function(element, chaperone) {
+        pushSubscript: function(element) {
 
             var self = this,
                 subscriptStack = self.subscriptStack,
@@ -3802,7 +3801,6 @@ exports.DomUtils = DomUtils;
 
                             DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
                             DJSUtil.inspect(element);
-                            DJSUtil.inspect(chaperone);
                             errorHandler();
                         }
                     }, 
