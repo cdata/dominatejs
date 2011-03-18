@@ -843,68 +843,80 @@ exports.DomUtils = DomUtils;
  *
  * Contains helpers and cross-browser wrappers to aide in other DJS functions
  */
-    var DJSUtil = (function() {
+
+    var DJSUtil = {
+        options: {},
+        inlineHandlers: []
+    };
+
+    DJSUtil.setup = function() {
         
-        var utilBase = window._ || {};
+        var self = this;
 
         if(DJS.length) {
+            for(var i = 0; i < DJS.length; i++) {
 
-            var cache = DJS,
-                inlineHandlers = [],
-                options = {},
-                sortItem = function(item) {
-                    
-                    switch(typeof item) {
-
-                        case "function":
-
-                            inlineHandlers.push(item);
-                            
-                            break;
-                        case "object":
-                            
-                            for(var option in item) {
-
-                                if(item.hasOwnProperty(option)) {
-
-                                    options[option] = item[option];
-                                }
-                            }
-
-                            break;
-                        default:
-                            break;
-                    }
-                };
-
-            for(var i = 0; i < cache.length; i++) {
-
-                sortItem(cache[i]);
-            }
-
-            DJS = {
-                push: function(value) {
-
-                    sortItem(value);
-                }
-            };
-
-            utilBase.options = options;
-            utilBase.inlineHandlers = inlineHandlers;
-
-            if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
-                
-                window.__CF.DJS = DJS;
-            } 
-            
-            if(window.DJS) {
-
-                window.DJS = DJS;
+                self.sortItem(DJS[i]);
             }
         }
 
-        return utilBase;
-    })();
+        self.fixWindow();
+    };
+
+    DJSUtil.fixWindow = function() {
+
+        var self = this;
+
+        DJS = {
+            push: function(value) {
+
+                self.sortItem(value);
+            }
+        };
+
+        if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
+            
+            window.__CF.DJS = DJS;
+        } 
+        
+        if(window.DJS) {
+
+            window.DJS = DJS;
+        }
+
+    };
+
+/*
+ * DJSUtil.sortItem
+ *
+ * Process DJS.push() arguments
+ */
+    DJSUtil.sortItem = function(item) {
+                    
+        var self = this;
+
+        switch(typeof item) {
+
+            case "function":
+
+                self.inlineHandlers.push(item);
+                
+                break;
+            case "object":
+                
+                for(var option in item) {
+
+                    if(item.hasOwnProperty(option)) {
+
+                        self.options[option] = item[option];
+                    }
+                }
+
+                break;
+            default:
+                break;
+        }
+    };
 
 /*
  * DJSUtil.epoch
@@ -1172,6 +1184,9 @@ exports.DomUtils = DomUtils;
 
         return constructor;
     };
+
+DJSUtil.setup();
+
 
 /*
  * class DJSDominatrix
