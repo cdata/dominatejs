@@ -1185,6 +1185,17 @@ exports.DomUtils = DomUtils;
         return constructor;
     };
 
+/*
+ * DJSUtil.getClass
+ *
+ * Return the class name of an object
+ */
+
+    DJSUtil.getClass = function(obj) {
+
+        return Object.prototype.toString.call(obj);
+    };
+
 DJSUtil.setup();
 
 
@@ -3090,12 +3101,15 @@ DJSUtil.setup();
  * General approach: use an HTML parser and HTML semantics engine to simulate
  * the browser's native behavior.
  *
+ * @param out : object - will be cast to a string
  */
 
             write: function(out) {
                 
                 var self = this,
                     parser = self.parser;
+
+                out = DJSUtil.getClass(out) == "String" ? out : '' + out;
 
                 DJSUtil.log('Buffering document.write content: ' + out);
                 
@@ -3923,7 +3937,9 @@ DJSUtil.setup();
 })(
     window,
     document,
-    (typeof window.__CF == "undefined" ? ((typeof DJS == "object" && DJS.length) ? DJS : []) : window.__CF.DJS),
+    ((typeof window.__CF != "undefined" && window.__CF.DJS)
+     || (typeof DJS == "object" && DJS.length && DJS)
+     || []),
     typeof exports != "undefined" ? exports : false,
     typeof DJSParserSemantics != "undefined" ? DJSParserSemantics : false
 );
