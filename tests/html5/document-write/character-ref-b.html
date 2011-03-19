@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Basic Write Test</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <script type="text/javascript">
+        document.write(
+            "<h1>&amp;</h1>" +
+            "<script>" +
+            "document.write('&amp; &amp;amp;&nbsp;&amp;');" +
+            "<\/script>"
+        );
+    </script>
+</body>
+</html>

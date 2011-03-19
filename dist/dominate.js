@@ -2722,6 +2722,10 @@ DJSUtil.setup();
                 
             switch(abstractElement.type) {
                 
+                case 'cf:script-inline-text':
+
+                    return document.createTextNode(abstractElement.data);
+
                 case 'text':
                     
                     return document.createTextNode(
@@ -2839,7 +2843,6 @@ DJSUtil.setup();
 
                         if (data.children) {
 
-                            //var liveNode = self.nodeCache[treePath.join('-')];
                             var liveNode = data.liveNode;
 
                             self.insert(data.children, liveNode, depth+1);
@@ -2847,12 +2850,10 @@ DJSUtil.setup();
                     } else {
 
                         var cursor = DJSParserSemantics.getEffectiveStreamCursor.call(self, rawParent),
-                            node = self.convertAbstractElement(data),
-                            name = node.nodeName.toLowerCase();
+                            node;
+
 
                         data.seen = true;
-                        DJSUtil.log('created new node:');
-                        DJSUtil.inspect(node);
 
                         
                         // Cursor will be either
@@ -2861,7 +2862,17 @@ DJSUtil.setup();
                         // > the nearest non-closed parent node of one of the above
                         try {
 
-                            if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
+                            if (cursor.parent.nodeName.toLowerCase() == "script" && data.type == "text") {
+
+                                type = data.type = "cf:script-inline-text";
+                            }
+
+                            node = self.convertAbstractElement(data);
+
+                            DJSUtil.log('created new node:');
+                            DJSUtil.inspect(node);
+
+                            if (data.type == "cf:script-inline-text") {
 
                                 var script = cursor.parent,
                                     inlineText = slaveScripts.handleInlineScriptText(
