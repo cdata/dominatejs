@@ -1305,6 +1305,10 @@ DJSUtil.setup();
                     // For each handler registered to eventType,
                     // find the first handler that matches all arguments
                     // passed to removeEventWrapper.  Remove that handler.
+                    if (!handlerQueue) {
+                        return;
+                    }
+
                     DJSUtil.forEach(
 
                         handlerQueue,
