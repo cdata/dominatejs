@@ -3472,7 +3472,7 @@ DJSUtil.setup();
                     };
                     preloadViaObjectInHead = function() {
 
-                        preLoadViaObject(document.getElementsByTagName('head')[0]);
+                        preloadViaObject(document.getElementsByTagName('head')[0]);
                     };
                 
                 DJSUtil.log('Precache-ing script at ' + self.src);
