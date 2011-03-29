@@ -1533,7 +1533,13 @@ DJSUtil.setup();
                         var context = nativeMethods.attachEvent ? window : target,
                             handler = args[1];
 
-                        handler.call(context, event);
+                        try {
+
+                            handler.call(context, event);
+                        } catch(e) {
+
+                            DJSUtil.error(e);
+                        }
 
                         if(event.propagationStopped) {
 
@@ -4034,23 +4040,22 @@ DJSUtil.setup();
 
                 function() {
 
-                    /*
-                     * Flushing the document.write buffer can insert new
-                     * script nodes to the document, which won't execute
-                     * until well after this javascript block completes.
-                     * Ideally, window.onload shouldn't fire until those
-                     * scripts and their subscripts terminate.
-                     *
-                     * Once those scripts are done, we can fire the load
-                     * events and restore the native methods.
-                     *
-                     * readwriteweb.com hits this use case.
-                     * news.yahoo.com hits this use case.
-                     * news.yahoo.com/video/ hits this use case.
-                     *
-                     * I've also seen some sites flash to blank, probably
-                     * due to d.write calls after we've hit .restore().
-                     */
+                    
+                    // Flushing the document.write buffer can insert new
+                    // script nodes to the document, which won't execute
+                    // until well after this javascript block completes.
+                    // Ideally, window.onload shouldn't fire until those
+                    // scripts and their subscripts terminate.
+                    //
+                    // Once those scripts are done, we can fire the load
+                    // events and restore the native methods.
+                    // 
+                    // readwriteweb.com hits this use case.
+                    // news.yahoo.com hits this use case.
+                    // news.yahoo.com/video/ hits this use case.
+                    //
+                    // I've also seen some sites flash to blank, probably
+                    // due to d.write calls after we've hit .restore().
                     slaveDocument.flush();
                     DJSUtil.log('Finished executing. Simulating load, ready and readystatechange events!');
 
