@@ -843,68 +843,80 @@ exports.DomUtils = DomUtils;
  *
  * Contains helpers and cross-browser wrappers to aide in other DJS functions
  */
-    var DJSUtil = (function() {
+
+    var DJSUtil = {
+        options: {},
+        inlineHandlers: []
+    };
+
+    DJSUtil.setup = function() {
         
-        var utilBase = window._ || {};
+        var self = this;
 
         if(DJS.length) {
+            for(var i = 0; i < DJS.length; i++) {
 
-            var cache = DJS,
-                inlineHandlers = [],
-                options = {},
-                sortItem = function(item) {
-                    
-                    switch(typeof item) {
-
-                        case "function":
-
-                            inlineHandlers.push(item);
-                            
-                            break;
-                        case "object":
-                            
-                            for(var option in item) {
-
-                                if(item.hasOwnProperty(option)) {
-
-                                    options[option] = item[option];
-                                }
-                            }
-
-                            break;
-                        default:
-                            break;
-                    }
-                };
-
-            for(var i = 0; i < cache.length; i++) {
-
-                sortItem(cache[i]);
-            }
-
-            DJS = {
-                push: function(value) {
-
-                    sortItem(value);
-                }
-            };
-
-            utilBase.options = options;
-            utilBase.inlineHandlers = inlineHandlers;
-
-            if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
-                
-                window.__CF.DJS = DJS;
-            } 
-            
-            if(window.DJS) {
-
-                window.DJS = DJS;
+                self.sortItem(DJS[i]);
             }
         }
 
-        return utilBase;
-    })();
+        self.fixWindow();
+    };
+
+    DJSUtil.fixWindow = function() {
+
+        var self = this;
+
+        DJS = {
+            push: function(value) {
+
+                self.sortItem(value);
+            }
+        };
+
+        if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
+            
+            window.__CF.DJS = DJS;
+        } 
+        
+        if(window.DJS) {
+
+            window.DJS = DJS;
+        }
+
+    };
+
+/*
+ * DJSUtil.sortItem
+ *
+ * Process DJS.push() arguments
+ */
+    DJSUtil.sortItem = function(item) {
+                    
+        var self = this;
+
+        switch(typeof item) {
+
+            case "function":
+
+                self.inlineHandlers.push(item);
+                
+                break;
+            case "object":
+                
+                for(var option in item) {
+
+                    if(item.hasOwnProperty(option)) {
+
+                        self.options[option] = item[option];
+                    }
+                }
+
+                break;
+            default:
+                break;
+        }
+    };
 
 /*
  * DJSUtil.epoch
@@ -1031,9 +1043,12 @@ exports.DomUtils = DomUtils;
         ModernIE: window.navigator.userAgent.indexOf('MSIE 8') !== -1 || window.navigator.userAgent.indexOf('MSIE 9') !== -1,
         IE: window.navigator.userAgent.indexOf('MSIE') !== -1,
         Chrome: window.navigator.userAgent.indexOf('Chrome/') !== -1,
+        Safari: window.navigator.userAgent.indexOf('Chrome/') !== -1,
         Opera: window.navigator.userAgent.indexOf('Opera') !== -1,
         Webkit: window.navigator.userAgent.indexOf('AppleWebKit') !== -1,
-        Firefox: window.navigator.userAgent.indexOf('Firefox/') !== -1
+        Firefox: window.navigator.userAgent.indexOf('Firefox/') !== -1,
+        Macintosh: window.navigator.userAgent.indexOf('Macintosh') !== -1,
+        Windows: window.navigator.userAgent.indexOf('Windows') !== -1
     },
 
 /*
@@ -1174,6 +1189,68 @@ exports.DomUtils = DomUtils;
     };
 
 /*
+ * DJSUtil.getClass
+ *
+ * Return the class name of an object
+ */
+    DJSUtil.getClass = function(obj) {
+
+        return Object.prototype.toString.call(obj);
+    };
+
+/*
+ * DJSUtil.parseUrl
+ *
+ * Parse the URL into parts
+ *
+ * 0 URL
+ * 1 protocol + domain + port
+ * 2 protocol
+ * 3 domain + port
+ * 4 domain
+ * 5 port
+ * 6 path
+ * 7 query string
+ * 8 query string initial char (? or &)
+ *
+ * e.g. "http://example.com/files/filename.js?xy=z" --> [
+    "http://example.com/files/filename.js?xy=z",    // url
+    "http://example.com",   // protocol + domain + port
+    "http://",              // protocol
+    "example.com",          // domain + port
+    undefined,              // no port
+    "example.com",          // domain
+    "/files/filename.js",   // path
+    "?xy=z",                // query string
+    "?"                     // query string initial char
+    ]
+ */
+    DJSUtil.parseUrl = function(url) {
+
+        return url && url.match(/^(([^:\/]+:\/\/)(([^:\/]+)(:[^:\/]+)?))?([^?&]*)((\?|&).*)?$/);
+    };
+
+/*
+ * DJSUtil.getPathExtension
+ *
+ * Return the file extension given a URL
+ *
+ * e.g. "http://example.com/files/filename.js?xy=z" --> "js"
+ */
+    DJSUtil.getPathExtension = function(url) {
+
+        var parts = DJSUtil.parseUrl(url),
+            pathFragments = parts[6] ? parts[6].split('/') : [''],
+            lastPath = pathFragments[pathFragments.length - 1],
+            dotParts = lastPath.split && lastPath.split('.');
+
+        return dotParts[dotParts.length - 1];
+    };
+
+DJSUtil.setup();
+
+
+/*
  * class DJSDominatrix
  *
  * This class serves as the core ancestor for any DominateJS classes that take
@@ -1279,6 +1356,10 @@ exports.DomUtils = DomUtils;
                     // For each handler registered to eventType,
                     // find the first handler that matches all arguments
                     // passed to removeEventWrapper.  Remove that handler.
+                    if (!handlerQueue) {
+                        return;
+                    }
+
                     DJSUtil.forEach(
 
                         handlerQueue,
@@ -1452,7 +1533,13 @@ exports.DomUtils = DomUtils;
                         var context = nativeMethods.attachEvent ? window : target,
                             handler = args[1];
 
-                        handler.call(context, event);
+                        try {
+
+                            handler.call(context, event);
+                        } catch(e) {
+
+                            DJSUtil.error(e);
+                        }
 
                         if(event.propagationStopped) {
 
@@ -2704,6 +2791,10 @@ exports.DomUtils = DomUtils;
                 
             switch(abstractElement.type) {
                 
+                case 'cf:script-inline-text':
+
+                    return document.createTextNode(abstractElement.data);
+
                 case 'text':
                     
                     return document.createTextNode(
@@ -2821,7 +2912,6 @@ exports.DomUtils = DomUtils;
 
                         if (data.children) {
 
-                            //var liveNode = self.nodeCache[treePath.join('-')];
                             var liveNode = data.liveNode;
 
                             self.insert(data.children, liveNode, depth+1);
@@ -2829,12 +2919,10 @@ exports.DomUtils = DomUtils;
                     } else {
 
                         var cursor = DJSParserSemantics.getEffectiveStreamCursor.call(self, rawParent),
-                            node = self.convertAbstractElement(data),
-                            name = node.nodeName.toLowerCase();
+                            node;
+
 
                         data.seen = true;
-                        DJSUtil.log('created new node:');
-                        DJSUtil.inspect(node);
 
                         
                         // Cursor will be either
@@ -2843,7 +2931,17 @@ exports.DomUtils = DomUtils;
                         // > the nearest non-closed parent node of one of the above
                         try {
 
-                            if (cursor.parent.nodeName.toLowerCase() == "script" && name == "#text") {
+                            if (cursor.parent.nodeName.toLowerCase() == "script" && data.type == "text") {
+
+                                type = data.type = "cf:script-inline-text";
+                            }
+
+                            node = self.convertAbstractElement(data);
+
+                            DJSUtil.log('created new node:');
+                            DJSUtil.inspect(node);
+
+                            if (data.type == "cf:script-inline-text") {
 
                                 var script = cursor.parent,
                                     inlineText = slaveScripts.handleInlineScriptText(
@@ -3020,13 +3118,12 @@ exports.DomUtils = DomUtils;
                     function(type) {
 
                         var args = arguments,
-                            caller = arguments.callee.caller || {},
                             nativeMethods = self.nativeMethods,
                             element = DJSUtil.feature.createElementCallApply ? nativeMethods.createElement.apply(document, args) : nativeMethods.createElement(type);
 
                         if(type.indexOf('script') != -1) {
 
-                            slaveScripts.pushSubscript(element, caller);
+                            slaveScripts.pushSubscript(element);
                         }
 
                         return element;
@@ -3062,12 +3159,15 @@ exports.DomUtils = DomUtils;
  * General approach: use an HTML parser and HTML semantics engine to simulate
  * the browser's native behavior.
  *
+ * @param out : object - will be cast to a string
  */
 
             write: function(out) {
                 
                 var self = this,
                     parser = self.parser;
+
+                out = DJSUtil.getClass(out) == "String" ? out : '' + out;
 
                 DJSUtil.log('Buffering document.write content: ' + out);
                 
@@ -3308,12 +3408,74 @@ exports.DomUtils = DomUtils;
                     },
                     attachHandlers = function() {
                         
+                        // onload or onerror, so long as the HTTP request completed,
+                        // we must continue loading page scripts.
+                        // non-IE browsers will fire onerror when loading an asset with
+                        // non-image mimetype via the image strategy
                         precacheObject.onload = loadHandler;
-                        precacheObject.onerror = errorHandler;
+                        precacheObject.onerror = loadHandler;
                     },
                     detachHandlers = function() {
                      
                         precacheObject.onload = precacheObject.onerror = null;
+                    },
+
+                     // Use Image pre-caching strategy
+                     // Note that in Firefox, Chrome, and Safari, the image's
+                     // error callback will fire as the response mimetype
+                     // should be non-image, but that is acceptable as the
+                     // asset should be loaded into cache anyway
+                    preloadViaImage = function() {
+
+                        precacheObject = new Image();
+
+                        attachHandlers();
+                        
+                        precacheObject.src = self.src;
+                    },
+
+                    // Use Object pre-caching strategy
+                    // Chrome:Mac and Safari:Win refuse to load
+                    // assets with certain filenames using this scheme
+                    //
+                    // @target specifies insertion parent: i.e. document.body
+                    // vs head
+                    preloadViaObject = function(target) {
+
+                        precacheObject = document.createElement('object');
+                        
+                        attachHandlers();
+
+                        precacheObject.data = self.src;
+                        precacheObject.width = 0;
+                        precacheObject.height = 0;
+                        precacheObject.style.position = "absolute";
+                        precacheObject.style.left = "-999";
+
+                        target.appendChild(precacheObject);
+                    },
+                    preloadViaObjectInBody = function() {
+
+                        // in Chrome, sometimes document.body doesn't exist
+                        // but the task to create document.body is probably
+                        // waiting in the task queue.  So, stick this
+                        // task at the end of the task queue so when it resumes,
+                        // the document.body task will probably have run.
+                        // And if not, keep doing this until it shows up.
+                        // (inspired by http://bugs.jquery.com/ticket/4320,
+                        //  https://github.com/jquery/jquery/commit/262fcf7b7b919da1564509f621cf7480a5d5572b)
+                        if ('body' in document && document.body) {
+
+                            preloadViaObject(document.body);
+                        } else {
+
+                            setTimeout(preloadViaObjectInBody, 13);
+                        }
+                        
+                    };
+                    preloadViaObjectInHead = function() {
+
+                        preloadViaObject(document.getElementsByTagName('head')[0]);
                     };
                 
                 DJSUtil.log('Precache-ing script at ' + self.src);
@@ -3321,27 +3483,28 @@ exports.DomUtils = DomUtils;
                 if(DJSUtil.navigator.IE || DJSUtil.navigator.Opera) {
                     
                     // Precache the element as an Image...
-                    precacheObject = new Image();
+                    preloadViaImage();
 
-                    attachHandlers();
-                    
-                    precacheObject.src = self.src;
+                } else if(DJSUtil.navigator.Chrome && DJSUtil.navigator.Macintosh &&
+                    /php/i.test(DJSUtil.getPathExtension(self.src))) {
+
+                    // Chrome/Mac disallows preloading via Object
+                    // for asset URLs with path extension containing php
+                    preloadViaImage();
+
+                } else if(DJSUtil.navigator.Safari && DJSUtil.navigator.Windows &&
+                    /css/i.test(DJSUtil.getPathExtension(self.src))) {
+
+                    // Safari/Win disallows preloading via Object
+                    // for asset URLs with path extension containing css
+                    preloadViaImage();
+
+                } else if(DJSUtil.navigator.Firefox) {
+
+                    preloadViaObjectInHead();
                 } else {
 
-                    // Precache the element as an Object...
-                    var appendTarget = DJSUtil.navigator.Firefox ? document.getElementsByTagName('head')[0] : document.body;                        
-
-                    precacheObject = document.createElement('object'),
-                    
-                    attachHandlers();
-
-                    precacheObject.data = self.src;
-                    precacheObject.width = 0;
-                    precacheObject.height = 0;
-                    precacheObject.style.position = "absolute";
-                    precacheObject.style.left = "-999";
-
-                    appendTarget.appendChild(precacheObject);
+                    preloadViaObjectInBody();
                 }
             } else {
 
@@ -3743,7 +3906,7 @@ exports.DomUtils = DomUtils;
  *
  * For online scripts, track onload by injecting a callback
  */
-        pushSubscript: function(element, chaperone) {
+        pushSubscript: function(element) {
 
             var self = this,
                 subscriptStack = self.subscriptStack,
@@ -3799,7 +3962,6 @@ exports.DomUtils = DomUtils;
 
                             DJSUtil.log('Subscript took too long to be inserted. Bailing out!');
                             DJSUtil.inspect(element);
-                            DJSUtil.inspect(chaperone);
                             errorHandler();
                         }
                     }, 
@@ -3875,6 +4037,22 @@ exports.DomUtils = DomUtils;
 
                 function() {
 
+                    
+                    // Flushing the document.write buffer can insert new
+                    // script nodes to the document, which won't execute
+                    // until well after this javascript block completes.
+                    // Ideally, window.onload shouldn't fire until those
+                    // scripts and their subscripts terminate.
+                    //
+                    // Once those scripts are done, we can fire the load
+                    // events and restore the native methods.
+                    // 
+                    // readwriteweb.com hits this use case.
+                    // news.yahoo.com hits this use case.
+                    // news.yahoo.com/video/ hits this use case.
+                    //
+                    // I've also seen some sites flash to blank, probably
+                    // due to d.write calls after we've hit .restore().
                     slaveDocument.flush();
                     DJSUtil.log('Finished executing. Simulating load, ready and readystatechange events!');
 
@@ -3883,7 +4061,6 @@ exports.DomUtils = DomUtils;
 
                     DJSUtil.log('Restoring native DOM methods!');
 
-                    slaveDocument.restore();
                     slaveWindow.restore();
 
                     DJSUtil.log('Took ' + (((new Date()).getTime()) - DJSUtil.epoch) + 'ms for total domination!');
@@ -3896,7 +4073,9 @@ exports.DomUtils = DomUtils;
 })(
     window,
     document,
-    (typeof window.__CF == "undefined" ? ((typeof DJS == "object" && DJS.length) ? DJS : []) : window.__CF.DJS),
+    ((typeof window.__CF != "undefined" && window.__CF.DJS)
+     || (typeof DJS == "object" && DJS.length && DJS)
+     || []),
     typeof exports != "undefined" ? exports : false,
     typeof DJSParserSemantics != "undefined" ? DJSParserSemantics : false
 );
