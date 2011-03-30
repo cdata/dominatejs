@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Basic Write Test</title>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <p>Expect two smileys</p>
+    <div class="rightparent">
+        <script type="text/javascript">
+        var div = document.createElement('div');
+        document.body.appendChild(div);
+        var i = document.createElement('img');
+        i.src = "http://stats.wordpress.com/g.gif?host=www.e-geniuses.com&rand=0.3966055668424815&blog=6926322&v=ext&post=0&ref=";
+        div.appendChild(i);
+        </script>
+    </div>
+    <script type="text/javascript">
+        document.open();
+        document.write('<img src="http://stats.wordpress.com/g.gif?host=www.e-geniuses.com&rand=0.3966055668424815&blog=6926322&v=ext&post=0&ref="/>');
+        document.close();
+    </script>
+</body>
+</html>
