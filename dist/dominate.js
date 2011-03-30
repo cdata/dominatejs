@@ -874,7 +874,7 @@ exports.DomUtils = DomUtils;
             }
         };
 
-        if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
+        if(window.__CF && window.__CF.DJS) {
             
             window.__CF.DJS = DJS;
         } 
