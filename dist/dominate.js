@@ -1431,6 +1431,7 @@ DJSUtil.setup();
                 capturedEvents = self.capturedEvents,
                 nativeMethods = self.nativeMethods,
                 addEventListener = nativeMethods.addEventListener || nativeMethods.attachEvent,
+                onEventType = 'on' + eventType.toLowerCase(),
                 captureHandler = function(event) {
                     
                     event.captureHandler = arguments.callee;
@@ -1438,8 +1439,6 @@ DJSUtil.setup();
                 };
 
             if(DJSUtil.feature.defineSetterGetter) {
-
-                var onEventType = 'on' + eventType.toLowerCase();
 
                 target.__defineSetter__(
                     onEventType,
@@ -1470,7 +1469,7 @@ DJSUtil.setup();
                     addEventListener.call(target, eventType, captureHandler, true);
                 } else {
 
-                    addEventListener(target, eventType, captureHandler);
+                    addEventListener(onEventType, captureHandler);
                 }
             }
         },
@@ -3038,20 +3037,20 @@ DJSUtil.setup();
 
             DJSUtil.forEach(chunks, function(chunk, index){
 
-                if (index < (chunks.length - 1)) {
+                if(chunk != "") {
+                    
+                    if(chunk.search(/<script/) != -1) {
 
-                    chunk += "</script>";
-                } else if (chunk == "") {
+                        chunk += "</script>";
+                    }
 
-                    return;
+                    DJSUtil.log('Parsing document.write content: ' + chunk);
+                    parser.parseChunk(chunk);
+                    parser.peek();
+
                 }
-
-                DJSUtil.log('Parsing document.write content: ' + chunk);
-                parser.parseChunk(chunk);
-                parser.peek();
             });
         }
-
     };
 
 /*
@@ -4066,7 +4065,7 @@ DJSUtil.setup();
 
                     slaveDocument.ready();
 
-                    //slaveDocument.restore();
+                    slaveDocument.restore();
                     slaveWindow.restore();
 
                     slaveWindow.load();
