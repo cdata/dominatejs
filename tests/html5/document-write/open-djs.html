@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DJS Basic External Write Test</title>
+    
+    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+</head>
+<body>
+    <p>Expect two smileys</p>
+    <div class="rightparent">
+        <script type="text/djs">
+        var div = document.createElement('div');
+        document.body.appendChild(div);
+        var i = document.createElement('img');
+        i.src = "http://stats.wordpress.com/g.gif?host=www.e-geniuses.com&rand=0.3966055668424815&blog=6926322&v=ext&post=0&ref=";
+        div.appendChild(i);
+        </script>
+    </div>
+    <script type="text/djs">
+        document.open();
+        document.write('<img src="http://stats.wordpress.com/g.gif?host=www.e-geniuses.com&rand=0.3966055668424815&blog=6926322&v=ext&post=0&ref=" height="20" width="20" />');
+        document.close();
+    </script>
+</body>
+</html>

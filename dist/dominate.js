@@ -874,7 +874,7 @@ exports.DomUtils = DomUtils;
             }
         };
 
-        if(window.__CF && window.__CF.DJS && window.__CF.DJS.length) {
+        if(window.__CF && window.__CF.DJS) {
             
             window.__CF.DJS = DJS;
         } 
@@ -3113,6 +3113,14 @@ DJSUtil.setup();
 
                 self.wrapNativeMethod("write", writeWrapper);
                 self.wrapNativeMethod("writeln", writeWrapper);
+
+                self.wrapNativeMethod("open", function(){
+                    DJSUtil.log('Ignoring document.open');
+                });
+                self.wrapNativeMethod("close", function(){
+                    DJSUtil.log('Ignoring document.close');
+                });
+
                 self.wrapNativeMethod(
                     "createElement",
                     function(type) {
@@ -4057,11 +4065,13 @@ DJSUtil.setup();
                     DJSUtil.log('Finished executing. Simulating load, ready and readystatechange events!');
 
                     slaveDocument.ready();
+
+                    //slaveDocument.restore();
+                    slaveWindow.restore();
+
                     slaveWindow.load();
 
                     DJSUtil.log('Restoring native DOM methods!');
-
-                    slaveWindow.restore();
 
                     DJSUtil.log('Took ' + (((new Date()).getTime()) - DJSUtil.epoch) + 'ms for total domination!');
                     DJSUtil.log('Fin.');
