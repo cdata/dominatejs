@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>DJS Basic External Write Test</title>
+    
+    <script type="text/javascript">
+    window.__CF = { DJS: [] };
+    </script>
+    <script type="text/javascript" src="/tests/javascripts/dominate.external.js"></script>
+    
+    <link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />
+    <link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />
+    <script type="text/djs">
+        function clearDocument() {
+            document.open();
+            document.write('<link rel="stylesheet" href="/tests/stylesheets/reset.css" media="screen" />');
+            document.write('<link rel="stylesheet" href="/tests/stylesheets/common.css" media="screen" />');
+            document.write('<img src="http://stats.wordpress.com/g.gif?host=www.e-geniuses.com&rand=0.3966055668424815&blog=6926322&v=ext&post=0&ref=" width="20" height="20"/>');
+            document.write('<div class="rightparent"><h1>I SHOULD BE BOLD AND GREEN</h1></div>');
+            document.close();
+        }
+    </script>
+</head>
+<body onload="__CF.DJS.push(function(){clearDocument()})">
+    <h1>Test failed</h1>
+    <div class="rightparent">
+    </div>
+</body>
+</html>
